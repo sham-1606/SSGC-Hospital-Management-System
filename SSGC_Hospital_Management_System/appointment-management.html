@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Appointment Management — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --ink:#0B2A43;
+    --primary:#0F4C81;
+    --teal:#2BB3A3;
+    --bg:#FFFFFF;
+    --bg-soft:#F8FAFC;
+    --accent:#2563EB;
+    --line:#E2E8F0;
+    --emergency:#DC2626;
+    --amber:#D97706;
+    --violet:#7C3AED;
+  }
+  html{scroll-behavior:smooth;}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces','Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  ::selection{background:var(--teal); color:white;}
+
+  #navbar{transition:background-color .35s ease, box-shadow .35s ease;}
+
+  .card-hover{transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;}
+  .card-hover:hover{transform:translateY(-3px); box-shadow:0 16px 32px -18px rgba(15,76,129,0.22); border-color:var(--teal);}
+
+  .btn-primary{background:var(--primary); color:white; transition:background-color .25s ease, transform .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-primary:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+
+  .btn-danger-outline{border:1.5px solid var(--emergency); color:var(--emergency); background:white; transition:all .2s ease;}
+  .btn-danger-outline:hover{background:var(--emergency); color:white;}
+
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  .chip-booked{background:#EFF6FF; border:1px solid #93C5FD; color:#1D4ED8;}
+  .chip-completed{background:#ECFDF5; border:1px solid #6EE7B7; color:#047857;}
+  .chip-cancelled{background:#F1F5F9; border:1px solid #CBD5E1; color:#475569;}
+  .chip-noshow{background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C;}
+  .chip-risk-high{background:#FFF7ED; border:1px solid #FDBA74; color:#C2410C;}
+  .chip-risk-low{background:#F8FAFC; border:1px solid var(--line); color:#64748B;}
+
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(43,179,163,0.15);}
+  a:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .modal-backdrop{background:rgba(11,42,67,0.55); backdrop-filter:blur(2px);}
+  .modal-panel{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+
+  .tab-btn{color:#64748B; border-bottom:2px solid transparent; transition:all .2s ease;}
+  .tab-btn.active{color:var(--primary); border-bottom-color:var(--teal);}
+
+  table.appts thead th{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#64748B; font-weight:600;}
+  table.appts tbody tr{transition:background-color .15s ease;}
+  table.appts tbody tr:hover{background:#F8FAFC;}
+
+  .toast{animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+
+  .slot-btn{border:1.5px solid var(--line); transition:all .18s ease; position:relative;}
+  .slot-btn:hover:not(:disabled){border-color:var(--primary); background:#F8FAFC;}
+  .slot-btn.selected{border-color:var(--primary); background:var(--primary); color:white;}
+  .slot-btn.recommended{border-color:var(--teal);}
+  .slot-btn:disabled{opacity:.35; cursor:not-allowed; text-decoration:line-through;}
+  .rec-badge{position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:var(--teal); color:white; font-size:9px; padding:1px 6px; border-radius:999px; white-space:nowrap; font-weight:600;}
+
+  .status-dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:#CBD5E1; border-radius:999px;}
+
+  .step-dot{width:22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:var(--bg-soft); color:#94A3B8; border:1.5px solid var(--line);}
+  .step-dot.active{background:var(--primary); color:white; border-color:var(--primary);}
+  .step-dot.done{background:var(--teal); color:white; border-color:var(--teal);}
+
+  @media (prefers-reduced-motion: reduce){ .modal-panel{animation:none;} .toast{animation:none;} }
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<!-- ============ TOP BAR ============ -->
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4">
+    <a href="home.html" class="flex items-center gap-2.5" aria-label="Back to SSGC Hospital home page">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base" style="color:var(--ink)">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Appointment Management</p>
+      </div>
+    </a>
+      <a href="dashboard.html" class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-full hover:bg-slate-50" style="color:var(--ink)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>Dashboard</a>
+    <div class="flex items-center gap-1.5 md:gap-2.5 flex-wrap justify-end">
+      <a href="home.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Site
+      </a>
+      <a href="patient-management.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="users" class="w-4 h-4"></i> Patients
+      </a>
+      <a href="firebase.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="database" class="w-4 h-4 text-amber-500"></i> Firebase
+      </a>
+      <button id="openRemindersBtn" class="btn-ghost text-sm font-medium px-3.5 py-2.5 rounded-full flex items-center gap-1.5">
+        <i data-lucide="bell" class="w-4 h-4"></i><span class="hidden sm:inline">Reminder Log</span>
+      </button>
+      <button id="openAvailabilityBtn" class="btn-outline text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2">
+        <i data-lucide="calendar-cog" class="w-4 h-4"></i><span class="hidden sm:inline">Doctor Availability</span><span class="sm:hidden">Doctors</span>
+      </button>
+      <button id="openBookBtn" class="btn-primary text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2">
+        <i data-lucide="calendar-plus" class="w-4 h-4"></i><span class="hidden sm:inline">Book Appointment</span><span class="sm:hidden">Book</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <!-- ============ STATS ============ -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Today's Appointments</p>
+        <i data-lucide="calendar-days" class="w-4 h-4" style="color:var(--primary)"></i>
+      </div>
+      <p id="statToday" class="font-display text-3xl font-semibold">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Upcoming (7 Days)</p>
+        <i data-lucide="calendar-clock" class="w-4 h-4" style="color:var(--teal)"></i>
+      </div>
+      <p id="statUpcoming" class="font-display text-3xl font-semibold">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">No-shows (30 Days)</p>
+        <i data-lucide="user-x" class="w-4 h-4" style="color:var(--emergency)"></i>
+      </div>
+      <p id="statNoShow" class="font-display text-3xl font-semibold">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">High No-show Risk</p>
+        <i data-lucide="shield-alert" class="w-4 h-4" style="color:var(--amber)"></i>
+      </div>
+      <p id="statHighRisk" class="font-display text-3xl font-semibold">0</p>
+    </div>
+  </div>
+
+  <!-- ============ ML NOTICE ============ -->
+  <div class="rounded-2xl border p-4 md:p-5 mb-6 flex items-start gap-3" style="border-color:#E9D5FF; background:#FAF5FF">
+    <i data-lucide="sparkles" class="w-4 h-4 mt-0.5 shrink-0" style="color:var(--violet)"></i>
+    <p class="text-sm" style="color:#5B21B6"><span class="font-semibold">Smart scheduling is active.</span> Slot suggestions are ranked by historical booking density, and patients are screened for no-show risk at booking time — high-risk patients automatically get an extra reminder queued.</p>
+  </div>
+
+  <!-- ============ SEARCH / FILTER BAR ============ -->
+  <div class="bg-white rounded-2xl border p-4 md:p-5 mb-5 flex flex-col md:flex-row gap-3 md:items-center" style="border-color:var(--line)">
+    <div class="relative flex-1">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input id="searchInput" type="text" placeholder="Search by patient name, appointment ID, or doctor…" class="w-full rounded-full border pl-10 pr-4 py-2.5 text-sm" style="border-color:var(--line)" />
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <select id="filterRange" class="rounded-full border px-3 py-2.5 text-sm" style="border-color:var(--line)">
+        <option value="upcoming">Upcoming</option>
+        <option value="today">Today</option>
+        <option value="past">Past</option>
+        <option value="all">All Dates</option>
+      </select>
+      <select id="filterDoctor" class="rounded-full border px-3 py-2.5 text-sm" style="border-color:var(--line)">
+        <option value="">All Doctors</option>
+      </select>
+      <select id="filterStatus" class="rounded-full border px-3 py-2.5 text-sm" style="border-color:var(--line)">
+        <option value="">All Statuses</option>
+        <option>Booked</option><option>Completed</option><option>Cancelled</option><option>No-show</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ============ APPOINTMENTS TABLE ============ -->
+  <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+    <div class="overflow-x-auto">
+      <table class="appts w-full text-sm">
+        <thead>
+          <tr class="border-b" style="border-color:var(--line)">
+            <th class="text-left px-5 py-3">Patient</th>
+            <th class="text-left px-5 py-3">Doctor / Dept</th>
+            <th class="text-left px-5 py-3">Date &amp; Time</th>
+            <th class="text-left px-5 py-3">Status</th>
+            <th class="text-left px-5 py-3">No-show Risk</th>
+            <th class="text-left px-5 py-3">Reminders</th>
+            <th class="text-right px-5 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="apptTableBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="hidden flex-col items-center justify-center text-center py-16 px-6">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center mb-4" style="background:var(--bg-soft)">
+        <i data-lucide="calendar-x" class="w-6 h-6" style="color:var(--primary)"></i>
+      </div>
+      <p class="font-display text-lg font-semibold mb-1">No appointments found</p>
+      <p class="text-sm text-slate-500 mb-5">Try a different filter, or book a new appointment.</p>
+      <button onclick="openBookModal()" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full">Book Appointment</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ BOOK / RESCHEDULE MODAL ============ -->
+<div id="bookModalBackdrop" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+    <div class="px-6 py-5 border-b flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <div>
+        <p id="bookModalTitle" class="font-display text-xl font-semibold">Book Appointment</p>
+        <p class="text-xs text-slate-400 mt-0.5">Select a patient and doctor, then choose a time slot.</p>
+      </div>
+      <button onclick="closeBookModal()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    <div class="px-6 pt-4 flex items-center gap-2 shrink-0">
+      <div class="step-dot active" id="stepDot1">1</div><div class="h-px w-8" style="background:var(--line)"></div>
+      <div class="step-dot" id="stepDot2">2</div><div class="h-px w-8" style="background:var(--line)"></div>
+      <div class="step-dot" id="stepDot3">3</div>
+      <span class="text-xs text-slate-400 ml-3" id="stepLabel">Patient &amp; Doctor</span>
+    </div>
+
+    <div class="px-6 py-5 overflow-y-auto flex-1">
+      <input type="hidden" id="editApptId" />
+
+      <!-- STEP 1: patient + doctor -->
+      <div class="step-panel" data-step="1">
+        <label class="text-sm font-medium block mb-1.5">Patient *</label>
+        <div class="relative mb-1">
+          <input id="patientSearch" type="text" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="Search registered patients by name or ID…" autocomplete="off" />
+          <div id="patientDropdown" class="hidden absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-56 overflow-y-auto" style="border-color:var(--line)"></div>
+        </div>
+        <div id="selectedPatientCard" class="hidden rounded-lg border px-3.5 py-2.5 mt-2 flex items-center justify-between" style="border-color:var(--teal); background:#F0FDFA">
+          <div>
+            <p id="selectedPatientName" class="text-sm font-medium"></p>
+            <p id="selectedPatientMeta" class="text-xs text-slate-500 font-mono"></p>
+          </div>
+          <button type="button" onclick="clearSelectedPatient()" class="text-xs font-medium" style="color:var(--primary)">Change</button>
+        </div>
+        <p class="text-xs text-slate-400 mt-1.5">Can't find the patient? <a href="patient-management.html" class="underline" style="color:var(--primary)">Register them first</a>.</p>
+
+        <label class="text-sm font-medium block mb-1.5 mt-5">Doctor *</label>
+        <select id="f-doctor" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)">
+          <option value="">Select a doctor…</option>
+        </select>
+
+        <label class="text-sm font-medium block mb-1.5 mt-5">Reason for Visit</label>
+        <input id="f-reason" type="text" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="e.g. Follow-up, routine checkup" />
+      </div>
+
+      <!-- STEP 2: date + slot -->
+      <div class="step-panel hidden" data-step="2">
+        <label class="text-sm font-medium block mb-1.5">Date *</label>
+        <input id="f-date" type="date" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)" />
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-sm font-medium">Available Slots *</label>
+          <span class="text-xs flex items-center gap-1.5" style="color:var(--teal)"><span class="w-2 h-2 rounded-full inline-block" style="background:var(--teal)"></span>Recommended = least crowded historically</span>
+        </div>
+        <div id="slotGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pt-2"></div>
+        <p id="slotEmptyMsg" class="hidden text-sm text-slate-500 py-6 text-center">No slots available — this doctor is off, on leave, or fully booked that day. Try another date.</p>
+      </div>
+
+      <!-- STEP 3: review -->
+      <div class="step-panel hidden" data-step="3">
+        <div id="reviewCard" class="rounded-xl border p-5" style="border-color:var(--line); background:var(--bg-soft)"></div>
+        <div id="riskNotice" class="hidden rounded-xl border p-4 mt-4 flex items-start gap-3" style="border-color:#FDBA74; background:#FFF7ED">
+          <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 shrink-0" style="color:var(--amber)"></i>
+          <p class="text-sm" style="color:#9A3412"><span class="font-semibold">High no-show risk flagged.</span> This patient's history shows a strong no-show pattern. An extra reminder will automatically be scheduled ahead of standard reminders.</p>
+        </div>
+        <div class="rounded-xl border p-4 mt-4" style="border-color:var(--line)">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Reminders to be scheduled</p>
+          <ul id="reminderPreview" class="text-sm space-y-1 text-slate-600"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-4 border-t flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <button type="button" id="stepBackBtn" class="btn-ghost text-sm font-medium px-4 py-2.5 rounded-full">Cancel</button>
+      <div class="flex gap-2">
+        <button type="button" id="stepPrevBtn" class="hidden btn-outline text-sm font-medium px-4 py-2.5 rounded-full">Back</button>
+        <button type="button" id="stepNextBtn" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full flex items-center gap-2">Continue <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DOCTOR AVAILABILITY MODAL ============ -->
+<div id="availModalBackdrop" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="px-6 py-5 border-b flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <div>
+        <p class="font-display text-xl font-semibold">Doctor Availability</p>
+        <p class="text-xs text-slate-400 mt-0.5">Manage working days, hours, slot length, and leave dates.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openDoctorForm()" class="btn-outline text-xs font-semibold px-3.5 py-2 rounded-full flex items-center gap-1.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Add Doctor</button>
+        <button onclick="closeAvailModal()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+    </div>
+    <div id="doctorList" class="overflow-y-auto flex-1 px-6 py-5 grid sm:grid-cols-2 gap-4"></div>
+  </div>
+</div>
+
+<!-- ============ DOCTOR EDIT SUB-MODAL ============ -->
+<div id="doctorFormBackdrop" class="hidden fixed inset-0 z-[80] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="px-6 py-5 border-b flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <p id="doctorFormTitle" class="font-display text-lg font-semibold">Add Doctor</p>
+      <button onclick="closeDoctorForm()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="px-6 py-5 overflow-y-auto flex-1">
+      <input type="hidden" id="df-id" />
+      <label class="text-sm font-medium block mb-1.5">Doctor Name *</label>
+      <input id="df-name" type="text" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)" placeholder="e.g. Dr. Ayesha Khan" />
+
+      <label class="text-sm font-medium block mb-1.5">Department *</label>
+      <select id="df-dept" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)">
+        <option>Cardiology</option><option>Neurology</option><option>Orthopedics</option>
+        <option>Pediatrics</option><option>General Medicine</option><option>Dermatology</option>
+      </select>
+
+      <label class="text-sm font-medium block mb-1.5">Working Days *</label>
+      <div class="grid grid-cols-4 gap-2 mb-4" id="df-days"></div>
+
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="text-sm font-medium block mb-1.5">Start Time</label>
+          <input id="df-start" type="time" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1.5">End Time</label>
+          <input id="df-end" type="time" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" />
+        </div>
+      </div>
+
+      <label class="text-sm font-medium block mb-1.5">Slot Duration</label>
+      <select id="df-slot" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)">
+        <option value="15">15 minutes</option><option value="20">20 minutes</option>
+        <option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option>
+      </select>
+
+      <label class="text-sm font-medium block mb-1.5">Leave Dates</label>
+      <div class="flex gap-2 mb-2">
+        <input id="df-leave-input" type="date" class="flex-1 rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" />
+        <button type="button" onclick="addLeaveDate()" class="btn-outline text-sm font-medium px-3.5 rounded-lg">Add</button>
+      </div>
+      <div id="df-leaves" class="flex flex-wrap gap-1.5"></div>
+    </div>
+    <div class="px-6 py-4 border-t flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <button type="button" id="df-delete-btn" onclick="deleteDoctor()" class="hidden text-sm font-medium" style="color:var(--emergency)">Remove Doctor</button>
+      <div class="flex gap-2 ml-auto">
+        <button type="button" onclick="closeDoctorForm()" class="btn-ghost text-sm font-medium px-4 py-2.5 rounded-full">Cancel</button>
+        <button type="button" onclick="saveDoctor()" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REMINDER LOG MODAL ============ -->
+<div id="remindersModalBackdrop" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="px-6 py-5 border-b flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <div>
+        <p class="font-display text-xl font-semibold">Reminder Log</p>
+        <p class="text-xs text-slate-400 mt-0.5">Simulated SMS / email reminder queue.</p>
+      </div>
+      <button onclick="closeRemindersModal()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div id="remindersList" class="overflow-y-auto flex-1 px-6 py-5 space-y-2.5"></div>
+  </div>
+</div>
+
+<!-- ============ RESCHEDULE / CANCEL CONFIRM (lightweight) ============ -->
+<div id="toastWrap" class="fixed bottom-5 right-5 z-[90] flex flex-col gap-2"></div>
+
+<script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Doctor','Nurse','Receptionist','Patient'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+
+/* ============================================================
+   CONSTANTS & STORAGE
+   ============================================================ */
+const PATIENTS_KEY = 'ssgc_patients_v1';
+const DOCTORS_KEY = 'ssgc_doctors_v1';
+const APPTS_KEY = 'ssgc_appointments_v1';
+const REMINDERS_KEY = 'ssgc_reminders_v1';
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let patients = [];
+let doctors = [];
+let appointments = [];
+let reminders = [];
+
+let bookState = { step: 1, editId: null, patient: null, doctorId: '', date: '', time: '', reason: '' };
+let currentDoctorEditId = null;
+
+/* ---------- helpers ---------- */
+function pad2(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function nowHM(){ const d=new Date(); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function formatDateNice(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+}
+function formatTime12(t){
+  const [h,m] = t.split(':').map(Number);
+  const period = h>=12 ? 'PM' : 'AM';
+  const h12 = h%12===0 ? 12 : h%12;
+  return `${h12}:${pad2(m)} ${period}`;
+}
+function addMinutesToTime(t, mins){
+  const [h,m] = t.split(':').map(Number);
+  const total = h*60+m+mins;
+  return pad2(Math.floor(total/60)%24)+':'+pad2(total%60);
+}
+function timeToMinutes(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+
+/* ============================================================
+   SEED / LOAD DATA
+   ============================================================ */
+function loadPatients(){
+  patients = JSON.parse(localStorage.getItem(PATIENTS_KEY) || '[]');
+  if (!patients.length){
+    patients = [
+      { id:'SSGC-2026-00001', name:'Ayesha Raza', dob:'1990-04-12', gender:'Female', phone:'0301-1234567', blood:'B+', allergies:['Penicillin'], nka:false },
+      { id:'SSGC-2026-00002', name:'Hassan Iqbal', dob:'1985-11-02', gender:'Male', phone:'0333-9988776', blood:'O+', allergies:[], nka:true }
+    ];
+    localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+  }
+}
+
+function seedDoctors(){
+  return [
+    { id:'DOC-001', name:'Dr. Amina Farooq', dept:'Cardiology', days:[1,2,3,4,5], start:'09:00', end:'14:00', slotMins:30, leaves:[] },
+    { id:'DOC-002', name:'Dr. Bilal Sheikh', dept:'Neurology', days:[1,3,5], start:'10:00', end:'16:00', slotMins:20, leaves:[] },
+    { id:'DOC-003', name:'Dr. Sana Malik', dept:'Orthopedics', days:[2,4,6], start:'11:00', end:'17:00', slotMins:30, leaves:[] },
+    { id:'DOC-004', name:'Dr. Omar Raza', dept:'Pediatrics', days:[1,2,3,4,5,6], start:'09:00', end:'13:00', slotMins:15, leaves:[] }
+  ];
+}
+
+function loadDoctors(){
+  doctors = JSON.parse(localStorage.getItem(DOCTORS_KEY) || 'null') || seedDoctors();
+  persistDoctors();
+}
+function persistDoctors(){ localStorage.setItem(DOCTORS_KEY, JSON.stringify(doctors)); }
+
+function seedAppointments(){
+  // synthetic historical data so smart recommendation + no-show risk have something to work with
+  const out = [];
+  const today = new Date();
+  const patientPool = patients.slice(0,2);
+  const doctorPool = doctors;
+  let seq = 1;
+  for (let dayOffset = 30; dayOffset >= 3; dayOffset -= 2){
+    const d = new Date(today); d.setDate(d.getDate() - dayOffset);
+    const dateStr = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    const dow = d.getDay();
+    doctorPool.forEach((doc, di) => {
+      if (!doc.days.includes(dow)) return;
+      // busier in mid-morning: create 2-4 historical bookings clustered
+      const busyHours = ['09:00','09:30','10:00','10:00','11:00'];
+      const hCount = 1 + ((dayOffset+di) % 3);
+      for (let i=0;i<hCount;i++){
+        const t = busyHours[(dayOffset+i+di) % busyHours.length];
+        if (timeToMinutes(t) < timeToMinutes(doc.start) || timeToMinutes(t) >= timeToMinutes(doc.end)) continue;
+        const p = patientPool[(dayOffset+i) % patientPool.length] || patientPool[0];
+        if (!p) continue;
+        const isNoShow = (dayOffset % 7 === 0 && i === 0);
+        out.push({
+          id: `APT-2026-${(seq++).toString().padStart(5,'0')}`,
+          patientId: p.id, patientName: p.name,
+          doctorId: doc.id, doctorName: doc.name, dept: doc.dept,
+          date: dateStr, time: t, reason: 'Routine visit',
+          status: isNoShow ? 'No-show' : 'Completed',
+          riskAtBooking: 'Low',
+          createdAt: d.getTime()
+        });
+      }
+    });
+  }
+  return out;
+}
+
+function loadAppointments(){
+  const stored = JSON.parse(localStorage.getItem(APPTS_KEY) || 'null');
+  appointments = stored && stored.length ? stored : seedAppointments();
+  persistAppointments();
+}
+function persistAppointments(){ localStorage.setItem(APPTS_KEY, JSON.stringify(appointments)); }
+
+function loadReminders(){
+  reminders = JSON.parse(localStorage.getItem(REMINDERS_KEY) || '[]');
+}
+function persistReminders(){ localStorage.setItem(REMINDERS_KEY, JSON.stringify(reminders)); }
+
+function genApptId(){
+  const year = new Date().getFullYear();
+  let n = appointments.length + 1;
+  const existing = new Set(appointments.map(a=>a.id));
+  let candidate = `APT-${year}-${n.toString().padStart(5,'0')}`;
+  while (existing.has(candidate)){ n++; candidate = `APT-${year}-${n.toString().padStart(5,'0')}`; }
+  return candidate;
+}
+function genReminderId(){ return 'RMD-' + Math.random().toString(36).slice(2,9).toUpperCase(); }
+
+/* ============================================================
+   NO-SHOW RISK MODEL (heuristic)
+   ============================================================ */
+function computeRisk(patientId){
+  const history = appointments.filter(a => a.patientId === patientId && (a.status === 'Completed' || a.status === 'No-show'));
+  const noShows = history.filter(a => a.status === 'No-show').length;
+  const total = history.length;
+  const ratio = total ? noShows / total : 0;
+  const highRisk = total >= 1 && (noShows >= 2 || ratio >= 0.5);
+  return { noShows, total, ratio, highRisk };
+}
+
+/* ============================================================
+   SMART SLOT RECOMMENDATION
+   ============================================================ */
+function historicalBucketCounts(){
+  const buckets = {};
+  appointments.forEach(a => {
+    const d = new Date(a.date+'T00:00:00');
+    const dow = d.getDay();
+    const hour = parseInt(a.time.split(':')[0],10);
+    const key = dow+'-'+hour;
+    buckets[key] = (buckets[key]||0) + 1;
+  });
+  return buckets;
+}
+
+function getAvailableSlots(doctor, dateStr, excludeApptId){
+  const d = new Date(dateStr+'T00:00:00');
+  const dow = d.getDay();
+  if (!doctor.days.includes(dow)) return [];
+  if (doctor.leaves.includes(dateStr)) return [];
+
+  const bookedTimes = new Set(
+    appointments
+      .filter(a => a.doctorId === doctor.id && a.date === dateStr && a.status === 'Booked' && a.id !== excludeApptId)
+      .map(a => a.time)
+  );
+
+  const slots = [];
+  let t = doctor.start;
+  while (timeToMinutes(t) < timeToMinutes(doctor.end)){
+    slots.push(t);
+    t = addMinutesToTime(t, doctor.slotMins);
+  }
+
+  const isToday = dateStr === todayStr();
+  const nowMins = timeToMinutes(nowHM());
+
+  const buckets = historicalBucketCounts();
+  const withMeta = slots.map(time => {
+    const booked = bookedTimes.has(time);
+    const past = isToday && timeToMinutes(time) <= nowMins;
+    const hour = parseInt(time.split(':')[0],10);
+    const crowdCount = buckets[dow+'-'+hour] || 0;
+    return { time, booked, past, crowdCount };
+  });
+
+  const availableOnes = withMeta.filter(s => !s.booked && !s.past);
+  if (availableOnes.length){
+    const minCrowd = Math.min(...availableOnes.map(s=>s.crowdCount));
+    withMeta.forEach(s => { s.recommended = !s.booked && !s.past && s.crowdCount === minCrowd; });
+  }
+  return withMeta;
+}
+
+/* ============================================================
+   REMINDERS
+   ============================================================ */
+function scheduleReminders(appt, highRisk){
+  const apptDateTime = new Date(appt.date+'T'+appt.time+':00');
+  const entries = [
+    { channel:'SMS', hoursBefore:24, reason:'Standard' },
+    { channel:'Email', hoursBefore:2, reason:'Standard' }
+  ];
+  if (highRisk){
+    entries.push({ channel:'SMS', hoursBefore:48, reason:'High no-show risk — extra reminder' });
+    entries.push({ channel:'Call', hoursBefore:3, reason:'High no-show risk — extra reminder' });
+  }
+  entries.forEach(e => {
+    const scheduledFor = new Date(apptDateTime.getTime() - e.hoursBefore*3600*1000);
+    reminders.push({
+      id: genReminderId(),
+      appointmentId: appt.id,
+      patientName: appt.patientName,
+      channel: e.channel,
+      scheduledFor: scheduledFor.getTime(),
+      status: scheduledFor.getTime() < Date.now() ? 'Sent' : 'Scheduled',
+      reason: e.reason
+    });
+  });
+  persistReminders();
+}
+
+function sendReminderNow(apptId){
+  const appt = appointments.find(a=>a.id===apptId);
+  if (!appt) return;
+  reminders.push({
+    id: genReminderId(), appointmentId: appt.id, patientName: appt.patientName,
+    channel:'SMS', scheduledFor: Date.now(), status:'Sent', reason:'Manual — sent now'
+  });
+  persistReminders();
+  showToast(`Reminder sent to ${appt.patientName}.`);
+  renderReminders();
+}
+
+/* ============================================================
+   RENDER: STATS + TABLE
+   ============================================================ */
+function currentFilters(){
+  return {
+    q: document.getElementById('searchInput').value.trim().toLowerCase(),
+    range: document.getElementById('filterRange').value,
+    doctorId: document.getElementById('filterDoctor').value,
+    status: document.getElementById('filterStatus').value
+  };
+}
+
+function filteredAppointments(){
+  const f = currentFilters();
+  const today = todayStr();
+  return appointments.filter(a => {
+    if (f.q){
+      const hay = `${a.patientName} ${a.id} ${a.doctorName}`.toLowerCase();
+      if (!hay.includes(f.q)) return false;
+    }
+    if (f.doctorId && a.doctorId !== f.doctorId) return false;
+    if (f.status && a.status !== f.status) return false;
+    if (f.range === 'today' && a.date !== today) return false;
+    if (f.range === 'upcoming' && a.date < today) return false;
+    if (f.range === 'past' && a.date >= today) return false;
+    return true;
+  }).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+}
+
+function statusChip(status){
+  const map = {
+    'Booked': 'chip-booked', 'Completed': 'chip-completed',
+    'Cancelled': 'chip-cancelled', 'No-show': 'chip-noshow'
+  };
+  return `<span class="chip ${map[status]||''} rounded-full px-2.5 py-1 font-medium inline-block">${status}</span>`;
+}
+
+function renderTable(){
+  const list = filteredAppointments();
+  const body = document.getElementById('apptTableBody');
+  const empty = document.getElementById('emptyState');
+  body.innerHTML = '';
+
+  if (!list.length){ empty.classList.remove('hidden'); empty.classList.add('flex'); }
+  else { empty.classList.add('hidden'); empty.classList.remove('flex'); }
+
+  list.forEach(a => {
+    const risk = computeRisk(a.patientId);
+    const riskChip = risk.highRisk
+      ? `<span class="chip chip-risk-high rounded-full px-2.5 py-1 font-medium inline-flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i>High</span>`
+      : `<span class="chip chip-risk-low rounded-full px-2.5 py-1 font-medium inline-block">Low</span>`;
+    const apptReminders = reminders.filter(r=>r.appointmentId===a.id);
+    const remindersSummary = apptReminders.length
+      ? `<span class="text-xs text-slate-500">${apptReminders.length} queued</span>`
+      : `<span class="text-xs text-slate-300">—</span>`;
+
+    const canAct = a.status === 'Booked';
+    const tr = document.createElement('tr');
+    tr.className = 'border-b last:border-0';
+    tr.style.borderColor = 'var(--line)';
+    tr.innerHTML = `
+      <td class="px-5 py-3.5">
+        <p class="font-medium">${escapeHtml(a.patientName)}</p>
+        <p class="text-xs text-slate-400 font-mono">${a.id}</p>
+      </td>
+      <td class="px-5 py-3.5">
+        <p class="text-slate-700">${escapeHtml(a.doctorName)}</p>
+        <p class="text-xs text-slate-400">${escapeHtml(a.dept)}</p>
+      </td>
+      <td class="px-5 py-3.5 text-slate-600">
+        <p>${formatDateNice(a.date)}</p>
+        <p class="text-xs text-slate-400">${formatTime12(a.time)}</p>
+      </td>
+      <td class="px-5 py-3.5">${statusChip(a.status)}</td>
+      <td class="px-5 py-3.5">${riskChip}</td>
+      <td class="px-5 py-3.5">${remindersSummary}</td>
+      <td class="px-5 py-3.5">
+        <div class="flex justify-end gap-1 flex-wrap">
+          ${canAct ? `
+            <button title="Send reminder now" onclick="sendReminderNow('${a.id}')" class="p-2 rounded-full btn-ghost"><i data-lucide="bell-ring" class="w-4 h-4"></i></button>
+            <button title="Reschedule" onclick="openRescheduleModal('${a.id}')" class="p-2 rounded-full btn-ghost"><i data-lucide="calendar-clock" class="w-4 h-4"></i></button>
+            <button title="Mark completed" onclick="setStatus('${a.id}','Completed')" class="p-2 rounded-full btn-ghost hover:text-emerald-600"><i data-lucide="check-circle" class="w-4 h-4"></i></button>
+            <button title="Mark no-show" onclick="setStatus('${a.id}','No-show')" class="p-2 rounded-full btn-ghost hover:text-amber-600"><i data-lucide="user-x" class="w-4 h-4"></i></button>
+            <button title="Cancel" onclick="cancelAppointment('${a.id}')" class="p-2 rounded-full btn-ghost hover:text-red-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+          ` : `<span class="text-xs text-slate-300 pr-2">No actions</span>`}
+        </div>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+
+  if (window.lucide) lucide.createIcons();
+  renderStats();
+}
+
+function renderStats(){
+  const today = todayStr();
+  const in7 = new Date(); in7.setDate(in7.getDate()+7);
+  const in7Str = `${in7.getFullYear()}-${pad2(in7.getMonth()+1)}-${pad2(in7.getDate())}`;
+  const cutoff30 = Date.now() - 30*86400000;
+
+  document.getElementById('statToday').textContent = appointments.filter(a=>a.date===today && a.status==='Booked').length;
+  document.getElementById('statUpcoming').textContent = appointments.filter(a=>a.date>=today && a.date<=in7Str && a.status==='Booked').length;
+  document.getElementById('statNoShow').textContent = appointments.filter(a=>a.status==='No-show' && new Date(a.date).getTime()>=cutoff30).length;
+
+  const riskyPatients = new Set(
+    patients.filter(p => computeRisk(p.id).highRisk).map(p=>p.id)
+  );
+  document.getElementById('statHighRisk').textContent = riskyPatients.size;
+}
+
+/* ============================================================
+   STATUS ACTIONS
+   ============================================================ */
+function setStatus(id, status){
+  const a = appointments.find(x=>x.id===id);
+  if (!a) return;
+  a.status = status;
+  persistAppointments();
+  renderTable();
+  showToast(`Appointment marked as ${status}.`);
+}
+
+function cancelAppointment(id){
+  const a = appointments.find(x=>x.id===id);
+  if (!a) return;
+  if (!confirm(`Cancel the appointment for ${a.patientName} on ${formatDateNice(a.date)} at ${formatTime12(a.time)}?`)) return;
+  a.status = 'Cancelled';
+  persistAppointments();
+  renderTable();
+  showToast('Appointment cancelled.');
+}
+
+/* ============================================================
+   BOOK / RESCHEDULE MODAL FLOW
+   ============================================================ */
+function populateDoctorSelects(){
+  const filterSel = document.getElementById('filterDoctor');
+  const formSel = document.getElementById('f-doctor');
+  filterSel.innerHTML = '<option value="">All Doctors</option>';
+  formSel.innerHTML = '<option value="">Select a doctor…</option>';
+  doctors.forEach(d => {
+    filterSel.innerHTML += `<option value="${d.id}">${escapeHtml(d.name)} — ${escapeHtml(d.dept)}</option>`;
+    formSel.innerHTML += `<option value="${d.id}">${escapeHtml(d.name)} — ${escapeHtml(d.dept)}</option>`;
+  });
+}
+
+function openBookModal(){
+  bookState = { step: 1, editId: null, patient: null, doctorId: '', date: todayStr(), time: '', reason: '' };
+  document.getElementById('bookModalTitle').textContent = 'Book Appointment';
+  document.getElementById('editApptId').value = '';
+  document.getElementById('patientSearch').value = '';
+  document.getElementById('f-doctor').value = '';
+  document.getElementById('f-reason').value = '';
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('f-date').min = todayStr();
+  clearSelectedPatient();
+  goToStep(1);
+  document.getElementById('bookModalBackdrop').classList.remove('hidden');
+  document.getElementById('bookModalBackdrop').classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+}
+
+function openRescheduleModal(apptId){
+  const a = appointments.find(x=>x.id===apptId);
+  if (!a) return;
+  bookState = { step: 1, editId: apptId, patient: patients.find(p=>p.id===a.patientId) || {id:a.patientId, name:a.patientName}, doctorId: a.doctorId, date: a.date, time: '', reason: a.reason||'' };
+  document.getElementById('bookModalTitle').textContent = 'Reschedule Appointment';
+  document.getElementById('editApptId').value = apptId;
+  document.getElementById('f-doctor').value = a.doctorId;
+  document.getElementById('f-reason').value = a.reason||'';
+  document.getElementById('f-date').value = a.date;
+  document.getElementById('f-date').min = todayStr();
+  selectPatient(bookState.patient);
+  goToStep(2);
+  document.getElementById('bookModalBackdrop').classList.remove('hidden');
+  document.getElementById('bookModalBackdrop').classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeBookModal(){
+  document.getElementById('bookModalBackdrop').classList.add('hidden');
+  document.getElementById('bookModalBackdrop').classList.remove('flex');
+}
+
+function goToStep(step){
+  bookState.step = step;
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.toggle('hidden', parseInt(p.dataset.step)!==step));
+  [1,2,3].forEach(n => {
+    const dot = document.getElementById('stepDot'+n);
+    dot.classList.remove('active','done');
+    if (n < step) dot.classList.add('done');
+    else if (n === step) dot.classList.add('active');
+  });
+  document.getElementById('stepLabel').textContent = step===1 ? 'Patient & Doctor' : step===2 ? 'Choose a Slot' : 'Review & Confirm';
+  document.getElementById('stepPrevBtn').classList.toggle('hidden', step===1);
+  document.getElementById('stepNextBtn').innerHTML = step===3
+    ? '<i data-lucide="check" class="w-4 h-4"></i> Confirm Booking'
+    : 'Continue <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+  if (step===2) renderSlotGrid();
+  if (step===3) renderReview();
+  if (window.lucide) lucide.createIcons();
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('stepBackBtn').addEventListener('click', closeBookModal);
+  document.getElementById('stepPrevBtn').addEventListener('click', ()=> goToStep(Math.max(1, bookState.step-1)));
+  document.getElementById('stepNextBtn').addEventListener('click', handleNext);
+  document.getElementById('f-date').addEventListener('change', (e)=>{ bookState.date = e.target.value; renderSlotGrid(); });
+});
+
+function handleNext(){
+  if (bookState.step === 1){
+    if (!bookState.patient){ showToast('Please select a patient.', true); return; }
+    const docId = document.getElementById('f-doctor').value;
+    if (!docId){ showToast('Please select a doctor.', true); return; }
+    bookState.doctorId = docId;
+    bookState.reason = document.getElementById('f-reason').value.trim();
+    goToStep(2);
+  } else if (bookState.step === 2){
+    if (!bookState.time){ showToast('Please choose a time slot.', true); return; }
+    goToStep(3);
+  } else {
+    confirmBooking();
+  }
+}
+
+/* ---- patient search/select ---- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  const input = document.getElementById('patientSearch');
+  input.addEventListener('input', ()=>{
+    const q = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('patientDropdown');
+    if (!q){ dropdown.classList.add('hidden'); return; }
+    const matches = patients.filter(p => `${p.name} ${p.id} ${p.phone||''}`.toLowerCase().includes(q)).slice(0,8);
+    if (!matches.length){
+      dropdown.innerHTML = `<div class="px-3.5 py-3 text-sm text-slate-400">No matching patients.</div>`;
+    } else {
+      dropdown.innerHTML = matches.map(p => `
+        <button type="button" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between" onclick='selectPatientById("${p.id}")'>
+          <span class="text-sm font-medium">${escapeHtml(p.name)}</span>
+          <span class="text-xs text-slate-400 font-mono">${p.id}</span>
+        </button>
+      `).join('');
+    }
+    dropdown.classList.remove('hidden');
+  });
+  document.addEventListener('click', (e)=>{
+    if (!e.target.closest('#patientSearch') && !e.target.closest('#patientDropdown')){
+      document.getElementById('patientDropdown').classList.add('hidden');
+    }
+  });
+});
+
+function selectPatientById(id){
+  const p = patients.find(x=>x.id===id);
+  if (p) selectPatient(p);
+}
+function selectPatient(p){
+  bookState.patient = p;
+  document.getElementById('patientDropdown').classList.add('hidden');
+  document.getElementById('patientSearch').value = '';
+  const card = document.getElementById('selectedPatientCard');
+  card.classList.remove('hidden');
+  document.getElementById('selectedPatientName').textContent = p.name;
+  const risk = computeRisk(p.id);
+  document.getElementById('selectedPatientMeta').textContent = p.id + (risk.total ? ` · No-show history: ${risk.noShows}/${risk.total}` : ' · No visit history yet');
+}
+function clearSelectedPatient(){
+  bookState.patient = null;
+  document.getElementById('selectedPatientCard').classList.add('hidden');
+}
+
+/* ---- slot grid ---- */
+function renderSlotGrid(){
+  const grid = document.getElementById('slotGrid');
+  const emptyMsg = document.getElementById('slotEmptyMsg');
+  const doctor = doctors.find(d=>d.id===bookState.doctorId);
+  const dateStr = document.getElementById('f-date').value;
+  bookState.date = dateStr;
+  if (!doctor || !dateStr){ grid.innerHTML=''; emptyMsg.classList.remove('hidden'); return; }
+
+  const slots = getAvailableSlots(doctor, dateStr, bookState.editId);
+  grid.innerHTML = '';
+
+  if (!slots.length){ emptyMsg.classList.remove('hidden'); return; }
+  emptyMsg.classList.add('hidden');
+
+  const anyAvailable = slots.some(s=>!s.booked && !s.past);
+  if (!anyAvailable){
+    emptyMsg.textContent = 'No open slots left for this date — try another date.';
+    emptyMsg.classList.remove('hidden');
+  }
+
+  slots.forEach(s => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const disabled = s.booked || s.past;
+    btn.disabled = disabled;
+    btn.className = 'slot-btn rounded-lg py-2.5 text-sm font-medium' + (s.recommended && !disabled ? ' recommended' : '') + (bookState.time===s.time && !disabled ? ' selected' : '');
+    btn.textContent = formatTime12(s.time);
+    if (s.recommended && !disabled){
+      const badge = document.createElement('span');
+      badge.className = 'rec-badge';
+      badge.textContent = 'Best pick';
+      btn.appendChild(badge);
+    }
+    btn.addEventListener('click', ()=>{
+      bookState.time = s.time;
+      renderSlotGrid();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+/* ---- review ---- */
+function renderReview(){
+  const doctor = doctors.find(d=>d.id===bookState.doctorId);
+  const risk = computeRisk(bookState.patient.id);
+  document.getElementById('reviewCard').innerHTML = `
+    <div class="grid grid-cols-2 gap-4 text-sm">
+      <div><p class="text-xs text-slate-400 mb-0.5">Patient</p><p class="font-medium">${escapeHtml(bookState.patient.name)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Patient ID</p><p class="font-mono">${bookState.patient.id}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Doctor</p><p class="font-medium">${escapeHtml(doctor.name)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Department</p><p class="font-medium">${escapeHtml(doctor.dept)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Date</p><p class="font-medium">${formatDateNice(bookState.date)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Time</p><p class="font-medium">${formatTime12(bookState.time)}</p></div>
+      <div class="col-span-2"><p class="text-xs text-slate-400 mb-0.5">Reason</p><p class="font-medium">${escapeHtml(bookState.reason) || '—'}</p></div>
+    </div>
+  `;
+  document.getElementById('riskNotice').classList.toggle('hidden', !risk.highRisk);
+
+  const apptDateTime = new Date(bookState.date+'T'+bookState.time+':00');
+  const preview = [
+    { channel:'SMS', hoursBefore:24 },
+    { channel:'Email', hoursBefore:2 }
+  ];
+  if (risk.highRisk){
+    preview.push({ channel:'SMS', hoursBefore:48, extra:true });
+    preview.push({ channel:'Call', hoursBefore:3, extra:true });
+  }
+  document.getElementById('reminderPreview').innerHTML = preview.map(p => {
+    const t = new Date(apptDateTime.getTime() - p.hoursBefore*3600*1000);
+    return `<li class="flex items-center gap-2"><i data-lucide="${p.channel==='SMS'?'message-square':p.channel==='Email'?'mail':'phone'}" class="w-3.5 h-3.5 text-slate-400"></i>${p.channel} — ${t.toLocaleDateString()} ${t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${p.extra ? ' <span class="text-xs" style="color:var(--amber)">(extra — high risk)</span>' : ''}</li>`;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function confirmBooking(){
+  const doctor = doctors.find(d=>d.id===bookState.doctorId);
+  const risk = computeRisk(bookState.patient.id);
+
+  if (bookState.editId){
+    const a = appointments.find(x=>x.id===bookState.editId);
+    a.date = bookState.date; a.time = bookState.time; a.doctorId = doctor.id; a.doctorName = doctor.name; a.dept = doctor.dept;
+    a.reason = bookState.reason; a.status = 'Booked';
+    persistAppointments();
+    scheduleReminders(a, risk.highRisk);
+    showToast('Appointment rescheduled.');
+  } else {
+    const appt = {
+      id: genApptId(),
+      patientId: bookState.patient.id, patientName: bookState.patient.name,
+      doctorId: doctor.id, doctorName: doctor.name, dept: doctor.dept,
+      date: bookState.date, time: bookState.time, reason: bookState.reason,
+      status: 'Booked', riskAtBooking: risk.highRisk ? 'High' : 'Low',
+      createdAt: Date.now()
+    };
+    appointments.push(appt);
+    persistAppointments();
+    scheduleReminders(appt, risk.highRisk);
+    showToast(risk.highRisk ? 'Appointment booked — extra reminder queued for high-risk patient.' : 'Appointment booked successfully.');
+  }
+  closeBookModal();
+  renderTable();
+}
+
+/* ============================================================
+   DOCTOR AVAILABILITY
+   ============================================================ */
+function openAvailModal(){
+  renderDoctorList();
+  document.getElementById('availModalBackdrop').classList.remove('hidden');
+  document.getElementById('availModalBackdrop').classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+}
+function closeAvailModal(){
+  document.getElementById('availModalBackdrop').classList.add('hidden');
+  document.getElementById('availModalBackdrop').classList.remove('flex');
+}
+
+function renderDoctorList(){
+  const wrap = document.getElementById('doctorList');
+  wrap.innerHTML = doctors.map(d => {
+    const daysLabel = d.days.map(n=>DAY_NAMES[n]).join(', ');
+    const upcomingLeaves = d.leaves.filter(l => l >= todayStr()).length;
+    return `
+      <div class="rounded-xl border p-4" style="border-color:var(--line)">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <p class="font-semibold text-sm">${escapeHtml(d.name)}</p>
+            <p class="text-xs text-slate-400">${escapeHtml(d.dept)}</p>
+          </div>
+          <button onclick="openDoctorForm('${d.id}')" class="p-1.5 rounded-full btn-ghost"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+        </div>
+        <p class="text-xs text-slate-500 mb-1"><i data-lucide="calendar" class="w-3 h-3 inline -mt-0.5"></i> ${daysLabel || 'No working days set'}</p>
+        <p class="text-xs text-slate-500 mb-1"><i data-lucide="clock" class="w-3 h-3 inline -mt-0.5"></i> ${formatTime12(d.start)} – ${formatTime12(d.end)} · ${d.slotMins} min slots</p>
+        <p class="text-xs text-slate-500"><i data-lucide="plane" class="w-3 h-3 inline -mt-0.5"></i> ${upcomingLeaves} upcoming leave day${upcomingLeaves===1?'':'s'}</p>
+      </div>
+    `;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+let doctorFormLeaves = [];
+function openDoctorForm(doctorId){
+  currentDoctorEditId = doctorId || null;
+  document.getElementById('doctorFormTitle').textContent = doctorId ? 'Edit Doctor' : 'Add Doctor';
+  document.getElementById('df-delete-btn').classList.toggle('hidden', !doctorId);
+
+  const daysWrap = document.getElementById('df-days');
+  daysWrap.innerHTML = DAY_NAMES.map((n,i) => `
+    <label class="flex items-center gap-1.5 text-xs border rounded-lg px-2 py-1.5 cursor-pointer" style="border-color:var(--line)">
+      <input type="checkbox" value="${i}" class="df-day-cb rounded" /> ${n}
+    </label>
+  `).join('');
+
+  if (doctorId){
+    const d = doctors.find(x=>x.id===doctorId);
+    document.getElementById('df-id').value = d.id;
+    document.getElementById('df-name').value = d.name;
+    document.getElementById('df-dept').value = d.dept;
+    document.getElementById('df-start').value = d.start;
+    document.getElementById('df-end').value = d.end;
+    document.getElementById('df-slot').value = d.slotMins;
+    doctorFormLeaves = [...d.leaves];
+    daysWrap.querySelectorAll('.df-day-cb').forEach(cb => { cb.checked = d.days.includes(parseInt(cb.value,10)); });
+  } else {
+    document.getElementById('df-id').value = '';
+    document.getElementById('df-name').value = '';
+    document.getElementById('df-dept').value = 'Cardiology';
+    document.getElementById('df-start').value = '09:00';
+    document.getElementById('df-end').value = '17:00';
+    document.getElementById('df-slot').value = '30';
+    doctorFormLeaves = [];
+  }
+  renderLeaveTags();
+  document.getElementById('doctorFormBackdrop').classList.remove('hidden');
+  document.getElementById('doctorFormBackdrop').classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+}
+function closeDoctorForm(){
+  document.getElementById('doctorFormBackdrop').classList.add('hidden');
+  document.getElementById('doctorFormBackdrop').classList.remove('flex');
+}
+
+function addLeaveDate(){
+  const val = document.getElementById('df-leave-input').value;
+  if (!val) return;
+  if (!doctorFormLeaves.includes(val)) doctorFormLeaves.push(val);
+  doctorFormLeaves.sort();
+  renderLeaveTags();
+  document.getElementById('df-leave-input').value = '';
+}
+function renderLeaveTags(){
+  const wrap = document.getElementById('df-leaves');
+  if (!doctorFormLeaves.length){ wrap.innerHTML = '<span class="text-xs text-slate-400">No leave dates added.</span>'; return; }
+  wrap.innerHTML = doctorFormLeaves.map((l,i) => `
+    <span class="chip rounded-full px-2.5 py-1 flex items-center gap-1.5 inline-flex">${l} <button type="button" onclick="removeLeave(${i})" class="text-slate-400 hover:text-red-600">&times;</button></span>
+  `).join('');
+}
+function removeLeave(i){ doctorFormLeaves.splice(i,1); renderLeaveTags(); }
+
+function saveDoctor(){
+  const name = document.getElementById('df-name').value.trim();
+  const dept = document.getElementById('df-dept').value;
+  const start = document.getElementById('df-start').value;
+  const end = document.getElementById('df-end').value;
+  const slotMins = parseInt(document.getElementById('df-slot').value, 10);
+  const days = Array.from(document.querySelectorAll('.df-day-cb:checked')).map(cb=>parseInt(cb.value,10));
+
+  if (!name || !days.length || !start || !end){
+    showToast('Please fill in name, working days, and hours.', true);
+    return;
+  }
+  if (timeToMinutes(start) >= timeToMinutes(end)){
+    showToast('End time must be after start time.', true);
+    return;
+  }
+
+  const id = document.getElementById('df-id').value;
+  if (id){
+    const d = doctors.find(x=>x.id===id);
+    Object.assign(d, { name, dept, start, end, slotMins, days, leaves: [...doctorFormLeaves] });
+    showToast('Doctor schedule updated.');
+  } else {
+    const newId = 'DOC-' + (doctors.length+1).toString().padStart(3,'0');
+    doctors.push({ id:newId, name, dept, start, end, slotMins, days, leaves:[...doctorFormLeaves] });
+    showToast('Doctor added.');
+  }
+  persistDoctors();
+  populateDoctorSelects();
+  renderDoctorList();
+  closeDoctorForm();
+}
+
+function deleteDoctor(){
+  const id = document.getElementById('df-id').value;
+  if (!id) return;
+  const d = doctors.find(x=>x.id===id);
+  if (!confirm(`Remove ${d.name} from the schedule? Existing appointments will remain but no new bookings can be made.`)) return;
+  doctors = doctors.filter(x=>x.id!==id);
+  persistDoctors();
+  populateDoctorSelects();
+  renderDoctorList();
+  closeDoctorForm();
+  showToast('Doctor removed.');
+}
+
+/* ============================================================
+   REMINDER LOG MODAL
+   ============================================================ */
+function openRemindersModal(){
+  renderReminders();
+  document.getElementById('remindersModalBackdrop').classList.remove('hidden');
+  document.getElementById('remindersModalBackdrop').classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+}
+function closeRemindersModal(){
+  document.getElementById('remindersModalBackdrop').classList.add('hidden');
+  document.getElementById('remindersModalBackdrop').classList.remove('flex');
+}
+function renderReminders(){
+  const wrap = document.getElementById('remindersList');
+  const sorted = [...reminders].sort((a,b)=>b.scheduledFor - a.scheduledFor);
+  if (!sorted.length){
+    wrap.innerHTML = `<p class="text-sm text-slate-400 text-center py-10">No reminders queued yet — book an appointment to see them here.</p>`;
+    return;
+  }
+  wrap.innerHTML = sorted.map(r => {
+    const isExtra = r.reason.includes('High no-show');
+    const iconName = r.channel==='SMS' ? 'message-square' : r.channel==='Email' ? 'mail' : 'phone';
+    const sent = r.status === 'Sent';
+    return `
+      <div class="rounded-xl border p-3.5 flex items-start gap-3" style="border-color:${isExtra ? '#FDBA74' : 'var(--line)'}; background:${isExtra ? '#FFF7ED' : 'white'}">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style="background:var(--bg-soft)">
+          <i data-lucide="${iconName}" class="w-4 h-4" style="color:var(--primary)"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium truncate">${escapeHtml(r.patientName)} <span class="text-xs text-slate-400 font-mono">· ${r.appointmentId}</span></p>
+            <span class="text-xs font-medium shrink-0" style="color:${sent?'#047857':'#64748B'}">${r.status}</span>
+          </div>
+          <p class="text-xs text-slate-500">${r.channel} · ${new Date(r.scheduledFor).toLocaleString()}</p>
+          <p class="text-xs mt-0.5" style="color:${isExtra?'#C2410C':'#94A3B8'}">${r.reason}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(msg, isError){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast rounded-xl px-4 py-3 text-sm font-medium shadow-lg text-white';
+  t.style.background = isError ? 'var(--emergency)' : 'var(--ink)';
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=> t.remove(), 3000);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadPatients();
+  loadDoctors();
+  loadAppointments();
+  loadReminders();
+  populateDoctorSelects();
+  renderTable();
+
+  document.getElementById('openBookBtn').addEventListener('click', openBookModal);
+  document.getElementById('openAvailabilityBtn').addEventListener('click', openAvailModal);
+  document.getElementById('openRemindersBtn').addEventListener('click', openRemindersModal);
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+  ['filterRange','filterDoctor','filterStatus'].forEach(id => document.getElementById(id).addEventListener('change', renderTable));
+
+  [document.getElementById('bookModalBackdrop'), document.getElementById('availModalBackdrop'), document.getElementById('doctorFormBackdrop'), document.getElementById('remindersModalBackdrop')].forEach(bd=>{
+    bd.addEventListener('click', (e)=>{ if (e.target===bd){
+      if (bd.id==='bookModalBackdrop') closeBookModal();
+      if (bd.id==='availModalBackdrop') closeAvailModal();
+      if (bd.id==='doctorFormBackdrop') closeDoctorForm();
+      if (bd.id==='remindersModalBackdrop') closeRemindersModal();
+    }});
+  });
+
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+</body>
+</html>

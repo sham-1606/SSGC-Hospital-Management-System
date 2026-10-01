@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patient Management — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --ink:#0B2A43;
+    --primary:#0F4C81;
+    --teal:#2BB3A3;
+    --bg:#FFFFFF;
+    --bg-soft:#F8FAFC;
+    --accent:#2563EB;
+    --line:#E2E8F0;
+    --emergency:#DC2626;
+    --amber:#D97706;
+  }
+  html{scroll-behavior:smooth;}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces','Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  ::selection{background:var(--teal); color:white;}
+
+  #navbar{transition:background-color .35s ease, box-shadow .35s ease;}
+
+  .card-hover{transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;}
+  .card-hover:hover{transform:translateY(-3px); box-shadow:0 16px 32px -18px rgba(15,76,129,0.22); border-color:var(--teal);}
+
+  .btn-primary{background:var(--primary); color:white; transition:background-color .25s ease, transform .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-primary:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  .chip-allergy{background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C;}
+  .chip-blood{background:#EFF6FF; border:1px solid #93C5FD; color:#1D4ED8;}
+
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(43,179,163,0.15);}
+  a:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .modal-backdrop{background:rgba(11,42,67,0.55); backdrop-filter:blur(2px);}
+  .modal-panel{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+
+  .tab-btn{color:#64748B; border-bottom:2px solid transparent; transition:all .2s ease;}
+  .tab-btn.active{color:var(--primary); border-bottom-color:var(--teal);}
+
+  table.patients thead th{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#64748B; font-weight:600;}
+  table.patients tbody tr{transition:background-color .15s ease;}
+  table.patients tbody tr:hover{background:#F8FAFC;}
+
+  .toast{animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+
+  .scan-frame{border:3px solid var(--teal); border-radius:16px; box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+  @keyframes scanline{0%{top:6%;}100%{top:94%;}}
+  .scan-line{position:absolute; left:6%; right:6%; height:2px; background:var(--teal); box-shadow:0 0 8px var(--teal); animation:scanline 2s ease-in-out infinite alternate;}
+
+  .status-dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:#CBD5E1; border-radius:999px;}
+
+  .skeleton{background:linear-gradient(90deg, var(--bg-soft) 25%, #eef2f6 37%, var(--bg-soft) 63%); background-size:400% 100%; animation:sk 1.4s ease infinite;}
+  @keyframes sk{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+
+  @media (prefers-reduced-motion: reduce){ .modal-panel{animation:none;} .scan-line{animation:none;} .toast{animation:none;} }
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<!-- ============ TOP BAR ============ -->
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4">
+    <a href="home.html" class="flex items-center gap-2.5" aria-label="Back to SSGC Hospital home page">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base" style="color:var(--ink)">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Patient Management</p>
+      </div>
+    </a>
+      <a href="dashboard.html" class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-full hover:bg-slate-50" style="color:var(--ink)"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>Dashboard</a>
+    <div class="flex items-center gap-2 md:gap-3">
+      <a href="home.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Site
+      </a>
+      <a href="appointment-management.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="calendar-days" class="w-4 h-4"></i> Appointments
+      </a>
+      <a href="firebase.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="database" class="w-4 h-4 text-amber-500"></i> Firebase
+      </a>
+      <button id="openScanBtn" class="btn-teal text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2">
+        <i data-lucide="qr-code" class="w-4 h-4"></i><span class="hidden sm:inline">Reception Check-in</span><span class="sm:hidden">Check-in</span>
+      </button>
+      <button id="openNewPatientBtn" class="btn-primary text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2">
+        <i data-lucide="user-plus" class="w-4 h-4"></i><span class="hidden sm:inline">Register Patient</span><span class="sm:hidden">New</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <!-- ============ STATS ============ -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Patients</p>
+        <i data-lucide="users" class="w-4 h-4" style="color:var(--primary)"></i>
+      </div>
+      <p id="statTotal" class="font-display text-3xl font-semibold">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Registered Today</p>
+        <i data-lucide="user-plus" class="w-4 h-4" style="color:var(--teal)"></i>
+      </div>
+      <p id="statToday" class="font-display text-3xl font-semibold">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Checked-in Today</p>
+        <i data-lucide="scan-line" class="w-4 h-4" style="color:var(--amber)"></i>
+      </div>
+      <p id="statCheckedIn" class="font-display text-3xl font-semibold">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">With Allergies on File</p>
+        <i data-lucide="shield-alert" class="w-4 h-4" style="color:var(--emergency)"></i>
+      </div>
+      <p id="statAllergies" class="font-display text-3xl font-semibold">0</p>
+    </div>
+  </div>
+
+  <!-- ============ SEARCH / FILTER BAR ============ -->
+  <div class="bg-white rounded-2xl border p-4 md:p-5 mb-5 flex flex-col md:flex-row gap-3 md:items-center" style="border-color:var(--line)">
+    <div class="relative flex-1">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input id="searchInput" type="text" placeholder="Search by name, patient ID, or phone number…" class="w-full rounded-full border pl-10 pr-4 py-2.5 text-sm" style="border-color:var(--line)" />
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <select id="filterGender" class="rounded-full border px-3 py-2.5 text-sm" style="border-color:var(--line)">
+        <option value="">All Genders</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+      <select id="filterBlood" class="rounded-full border px-3 py-2.5 text-sm" style="border-color:var(--line)">
+        <option value="">All Blood Groups</option>
+        <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+        <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+      </select>
+      <select id="filterAllergy" class="rounded-full border px-3 py-2.5 text-sm" style="border-color:var(--line)">
+        <option value="">Any Allergy Status</option>
+        <option value="yes">Has Allergies</option>
+        <option value="no">No Known Allergies</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ============ PATIENT TABLE ============ -->
+  <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+    <div class="overflow-x-auto">
+      <table class="patients w-full text-sm">
+        <thead>
+          <tr class="border-b" style="border-color:var(--line)">
+            <th class="text-left px-5 py-3">Patient</th>
+            <th class="text-left px-5 py-3">Patient ID</th>
+            <th class="text-left px-5 py-3">Age / Gender</th>
+            <th class="text-left px-5 py-3">Contact</th>
+            <th class="text-left px-5 py-3">Blood Group</th>
+            <th class="text-left px-5 py-3">Allergies</th>
+            <th class="text-left px-5 py-3">Check-in Status</th>
+            <th class="text-right px-5 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="hidden flex-col items-center justify-center text-center py-16 px-6">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center mb-4" style="background:var(--bg-soft)">
+        <i data-lucide="users" class="w-6 h-6" style="color:var(--primary)"></i>
+      </div>
+      <p class="font-display text-lg font-semibold mb-1">No patients found</p>
+      <p class="text-sm text-slate-500 mb-5">Try a different search, or register a new patient to get started.</p>
+      <button onclick="openPatientModal()" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full">Register Patient</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ PATIENT REGISTER / EDIT MODAL ============ -->
+<div id="patientModalBackdrop" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="px-6 py-5 border-b flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <div>
+        <p id="patientModalTitle" class="font-display text-xl font-semibold">Register New Patient</p>
+        <p id="patientModalIdPreview" class="font-mono text-xs mt-0.5" style="color:var(--teal)"></p>
+      </div>
+      <button onclick="closePatientModal()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    <div class="px-6 pt-4 flex gap-5 border-b shrink-0" style="border-color:var(--line)">
+      <button class="tab-btn active pb-3 text-sm font-medium" data-tab="demo">Demographics</button>
+      <button class="tab-btn pb-3 text-sm font-medium" data-tab="history">Medical History</button>
+      <button class="tab-btn pb-3 text-sm font-medium" data-tab="allergy">Allergies</button>
+    </div>
+
+    <form id="patientForm" class="px-6 py-5 overflow-y-auto flex-1">
+      <input type="hidden" id="patientRecordId" />
+
+      <!-- DEMOGRAPHICS -->
+      <div class="tab-panel" data-panel="demo">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="text-sm font-medium block mb-1.5">Full Name *</label>
+            <input id="f-name" required type="text" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="e.g. Fatima Sheikh" />
+          </div>
+          <div>
+            <label class="text-sm font-medium block mb-1.5">Date of Birth *</label>
+            <input id="f-dob" required type="date" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" />
+          </div>
+          <div>
+            <label class="text-sm font-medium block mb-1.5">Gender *</label>
+            <select id="f-gender" required class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)">
+              <option value="">Select…</option>
+              <option>Male</option><option>Female</option><option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium block mb-1.5">Phone Number *</label>
+            <input id="f-phone" required type="tel" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="03xx-xxxxxxx" />
+          </div>
+          <div>
+            <label class="text-sm font-medium block mb-1.5">Email</label>
+            <input id="f-email" type="email" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="patient@example.com" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-sm font-medium block mb-1.5">Address</label>
+            <input id="f-address" type="text" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="Street, City" />
+          </div>
+          <div>
+            <label class="text-sm font-medium block mb-1.5">Blood Group</label>
+            <select id="f-blood" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)">
+              <option value="">Unknown</option>
+              <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+              <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium block mb-1.5">Emergency Contact</label>
+            <input id="f-emergency" type="tel" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="Name & phone" />
+          </div>
+        </div>
+      </div>
+
+      <!-- MEDICAL HISTORY -->
+      <div class="tab-panel hidden" data-panel="history">
+        <label class="text-sm font-medium block mb-1.5">Existing Conditions</label>
+        <textarea id="f-conditions" rows="3" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)" placeholder="e.g. Type 2 diabetes, hypertension"></textarea>
+        <label class="text-sm font-medium block mb-1.5">Past Surgeries / Procedures</label>
+        <textarea id="f-surgeries" rows="3" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)" placeholder="e.g. Appendectomy (2019)"></textarea>
+        <label class="text-sm font-medium block mb-1.5">Current Medications</label>
+        <textarea id="f-meds" rows="3" class="w-full rounded-lg border px-3.5 py-2.5 text-sm mb-4" style="border-color:var(--line)" placeholder="e.g. Metformin 500mg twice daily"></textarea>
+        <label class="text-sm font-medium block mb-1.5">Family History</label>
+        <textarea id="f-family" rows="2" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="e.g. Father — heart disease"></textarea>
+      </div>
+
+      <!-- ALLERGIES -->
+      <div class="tab-panel hidden" data-panel="allergy">
+        <label class="text-sm font-medium block mb-1.5">Known Allergies</label>
+        <p class="text-xs text-slate-500 mb-2">Press Enter or comma to add each allergy as a tag.</p>
+        <div id="allergyTags" class="flex flex-wrap gap-2 border rounded-lg px-3 py-2.5 mb-1 min-h-[46px]" style="border-color:var(--line)">
+          <input id="f-allergy-input" type="text" class="flex-1 min-w-[140px] text-sm outline-none py-1" placeholder="e.g. Penicillin, Peanuts…" />
+        </div>
+        <label class="flex items-center gap-2 mt-4 text-sm">
+          <input id="f-no-allergies" type="checkbox" class="rounded" />
+          No known allergies (NKA)
+        </label>
+        <label class="text-sm font-medium block mb-1.5 mt-4">Allergy Notes / Reactions</label>
+        <textarea id="f-allergy-notes" rows="3" class="w-full rounded-lg border px-3.5 py-2.5 text-sm" style="border-color:var(--line)" placeholder="e.g. Penicillin — causes rash and swelling"></textarea>
+      </div>
+    </form>
+
+    <div class="px-6 py-4 border-t flex items-center justify-between shrink-0" style="border-color:var(--line)">
+      <p class="text-xs text-slate-400">* Required fields</p>
+      <div class="flex gap-2">
+        <button type="button" onclick="closePatientModal()" class="btn-ghost text-sm font-medium px-4 py-2.5 rounded-full">Cancel</button>
+        <button type="button" onclick="savePatient()" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i> Save Patient
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PATIENT DETAIL / QR MODAL ============ -->
+<div id="detailModalBackdrop" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="px-6 py-5 border-b flex items-center justify-between" style="border-color:var(--line)">
+      <p class="font-display text-xl font-semibold">Patient Record</p>
+      <button onclick="closeDetailModal()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div id="detailBody" class="px-6 py-5"></div>
+  </div>
+</div>
+
+<!-- ============ RECEPTION SCAN MODAL ============ -->
+<div id="scanModalBackdrop" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-md overflow-hidden">
+    <div class="px-6 py-5 border-b flex items-center justify-between" style="border-color:var(--line)">
+      <div>
+        <p class="font-display text-xl font-semibold">Reception Check-in</p>
+        <p class="text-xs text-slate-500 mt-0.5">Scan the patient's QR code, or enter their ID manually.</p>
+      </div>
+      <button onclick="closeScanModal()" class="p-2 rounded-full btn-ghost"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="px-6 py-5">
+      <div class="relative rounded-xl overflow-hidden bg-black aspect-square mb-2">
+        <video id="scanVideo" class="w-full h-full object-cover" playsinline muted></video>
+        <canvas id="scanCanvas" class="hidden"></canvas>
+        <div class="absolute inset-[12%] scan-frame rounded-2xl pointer-events-none">
+          <div class="scan-line"></div>
+        </div>
+        <div id="scanUnavailable" class="hidden absolute inset-0 flex flex-col items-center justify-center text-white/70 text-sm px-6 text-center gap-2">
+          <i data-lucide="camera-off" class="w-6 h-6"></i>
+          Camera not available — use manual entry below.
+        </div>
+      </div>
+      <p id="scanStatus" class="text-xs text-slate-500 text-center mb-4">Point the camera at the patient's QR code…</p>
+      <div class="flex gap-2">
+        <input id="manualIdInput" type="text" placeholder="Enter Patient ID (e.g. SSGC-2026-00001)" class="flex-1 rounded-full border px-4 py-2.5 text-sm font-mono" style="border-color:var(--line)" />
+        <button onclick="manualCheckIn()" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full">Check In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap" class="fixed bottom-5 right-5 z-[80] flex flex-col gap-2"></div>
+
+<script>
+/* ============================================================
+   DATA LAYER
+   ============================================================ */
+const STORAGE_KEY = 'ssgc_patients_v1';
+let patients = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(patients)); }
+
+function seedIfEmpty(){
+  if (patients.length) return;
+  patients = [
+    {
+      id: genPatientId(), name: 'Ayesha Raza', dob: '1990-04-12', gender: 'Female',
+      phone: '0301-1234567', email: 'ayesha.raza@example.com', address: 'Gulshan-e-Iqbal, Karachi',
+      blood: 'B+', emergency: 'Bilal Raza — 0301-7654321',
+      conditions: 'Hypertension', surgeries: '', meds: 'Amlodipine 5mg daily', family: 'Mother — hypertension',
+      allergies: ['Penicillin'], nka: false, allergyNotes: 'Penicillin — causes hives',
+      createdAt: Date.now() - 86400000*2, checkins: []
+    },
+    {
+      id: genPatientId(), name: 'Hassan Iqbal', dob: '1985-11-02', gender: 'Male',
+      phone: '0333-9988776', email: '', address: 'DHA Phase 5, Lahore',
+      blood: 'O+', emergency: 'Sana Iqbal — 0333-1122334',
+      conditions: '', surgeries: 'Appendectomy (2015)', meds: '', family: '',
+      allergies: [], nka: true, allergyNotes: '',
+      createdAt: Date.now() - 3600000*5, checkins: []
+    }
+  ];
+  persist();
+}
+
+function genPatientId(){
+  const year = new Date().getFullYear();
+  const seq = (patients.length + 1).toString().padStart(5,'0');
+  let candidate = `SSGC-${year}-${seq}`;
+  const existing = new Set(patients.map(p=>p.id));
+  let n = patients.length + 1;
+  while (existing.has(candidate)){
+    n++; candidate = `SSGC-${year}-${n.toString().padStart(5,'0')}`;
+  }
+  return candidate;
+}
+
+function ageFromDob(dob){
+  if(!dob) return '—';
+  const d = new Date(dob), now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m===0 && now.getDate() < d.getDate())) age--;
+  return age;
+}
+
+function isToday(ts){
+  const d = new Date(ts), n = new Date();
+  return d.toDateString() === n.toDateString();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function currentFilters(){
+  return {
+    q: document.getElementById('searchInput').value.trim().toLowerCase(),
+    gender: document.getElementById('filterGender').value,
+    blood: document.getElementById('filterBlood').value,
+    allergy: document.getElementById('filterAllergy').value
+  };
+}
+
+function filteredPatients(){
+  const f = currentFilters();
+  return patients.filter(p => {
+    if (f.q){
+      const hay = `${p.name} ${p.id} ${p.phone}`.toLowerCase();
+      if (!hay.includes(f.q)) return false;
+    }
+    if (f.gender && p.gender !== f.gender) return false;
+    if (f.blood && p.blood !== f.blood) return false;
+    if (f.allergy === 'yes' && !(p.allergies && p.allergies.length)) return false;
+    if (f.allergy === 'no' && (p.allergies && p.allergies.length)) return false;
+    return true;
+  }).sort((a,b)=>b.createdAt - a.createdAt);
+}
+
+function checkedInToday(p){
+  return (p.checkins||[]).some(ts => isToday(ts));
+}
+
+function renderTable(){
+  const list = filteredPatients();
+  const body = document.getElementById('patientTableBody');
+  const empty = document.getElementById('emptyState');
+  body.innerHTML = '';
+
+  if (!list.length){
+    empty.classList.remove('hidden');
+    empty.classList.add('flex');
+  } else {
+    empty.classList.add('hidden');
+    empty.classList.remove('flex');
+  }
+
+  list.forEach(p => {
+    const initials = p.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const checkedIn = checkedInToday(p);
+    const allergyChips = (p.allergies && p.allergies.length)
+      ? p.allergies.slice(0,2).map(a=>`<span class="chip chip-allergy rounded-full px-2 py-0.5 mr-1">${escapeHtml(a)}</span>`).join('') + (p.allergies.length>2 ? `<span class="text-xs text-slate-400">+${p.allergies.length-2}</span>` : '')
+      : `<span class="text-xs text-slate-400">NKA</span>`;
+
+    const tr = document.createElement('tr');
+    tr.className = 'border-b last:border-0';
+    tr.style.borderColor = 'var(--line)';
+    tr.innerHTML = `
+      <td class="px-5 py-3.5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0" style="background:var(--bg-soft); color:var(--primary)">${initials}</div>
+          <div>
+            <p class="font-medium">${escapeHtml(p.name)}</p>
+            <p class="text-xs text-slate-400">${escapeHtml(p.phone)}</p>
+          </div>
+        </div>
+      </td>
+      <td class="px-5 py-3.5 font-mono text-xs" style="color:var(--primary)">${p.id}</td>
+      <td class="px-5 py-3.5 text-slate-600">${ageFromDob(p.dob)} yrs · ${escapeHtml(p.gender||'—')}</td>
+      <td class="px-5 py-3.5 text-slate-600">${escapeHtml(p.phone)}</td>
+      <td class="px-5 py-3.5">${p.blood ? `<span class="chip chip-blood rounded-full px-2 py-0.5 font-mono">${p.blood}</span>` : '<span class="text-xs text-slate-400">—</span>'}</td>
+      <td class="px-5 py-3.5">${allergyChips}</td>
+      <td class="px-5 py-3.5">
+        ${checkedIn
+          ? `<span class="inline-flex items-center gap-1.5 text-xs font-medium" style="color:var(--teal)"><span class="status-dot" style="background:var(--teal)"></span>Checked in</span>`
+          : `<span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400"><span class="status-dot bg-slate-300"></span>Not yet</span>`}
+      </td>
+      <td class="px-5 py-3.5">
+        <div class="flex justify-end gap-1">
+          <button title="View / QR" onclick="openDetailModal('${p.id}')" class="p-2 rounded-full btn-ghost"><i data-lucide="eye" class="w-4 h-4"></i></button>
+          <button title="Edit" onclick="openPatientModal('${p.id}')" class="p-2 rounded-full btn-ghost"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+          <button title="Delete" onclick="deletePatient('${p.id}')" class="p-2 rounded-full btn-ghost hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+
+  if (window.lucide) lucide.createIcons();
+  renderStats();
+}
+
+function renderStats(){
+  document.getElementById('statTotal').textContent = patients.length;
+  document.getElementById('statToday').textContent = patients.filter(p=>isToday(p.createdAt)).length;
+  document.getElementById('statCheckedIn').textContent = patients.filter(checkedInToday).length;
+  document.getElementById('statAllergies').textContent = patients.filter(p=>p.allergies && p.allergies.length).length;
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+['searchInput'].forEach(id => document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById(id).addEventListener('input', renderTable);
+}));
+document.addEventListener('DOMContentLoaded', ()=>{
+  ['filterGender','filterBlood','filterAllergy'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', renderTable);
+  });
+});
+
+/* ============================================================
+   REGISTER / EDIT MODAL
+   ============================================================ */
+let allergyTagsCurrent = [];
+
+function openPatientModal(patientId){
+  const backdrop = document.getElementById('patientModalBackdrop');
+  const isEdit = !!patientId;
+  document.getElementById('patientModalTitle').textContent = isEdit ? 'Edit Patient Record' : 'Register New Patient';
+  document.getElementById('patientForm').reset();
+  allergyTagsCurrent = [];
+  document.getElementById('patientRecordId').value = patientId || '';
+
+  if (isEdit){
+    const p = patients.find(x=>x.id===patientId);
+    document.getElementById('patientModalIdPreview').textContent = p.id;
+    document.getElementById('f-name').value = p.name;
+    document.getElementById('f-dob').value = p.dob;
+    document.getElementById('f-gender').value = p.gender;
+    document.getElementById('f-phone').value = p.phone;
+    document.getElementById('f-email').value = p.email;
+    document.getElementById('f-address').value = p.address;
+    document.getElementById('f-blood').value = p.blood;
+    document.getElementById('f-emergency').value = p.emergency;
+    document.getElementById('f-conditions').value = p.conditions;
+    document.getElementById('f-surgeries').value = p.surgeries;
+    document.getElementById('f-meds').value = p.meds;
+    document.getElementById('f-family').value = p.family;
+    document.getElementById('f-allergy-notes').value = p.allergyNotes;
+    document.getElementById('f-no-allergies').checked = !!p.nka;
+    allergyTagsCurrent = [...(p.allergies||[])];
+  } else {
+    document.getElementById('patientModalIdPreview').textContent = 'New ID: ' + genPatientId();
+  }
+  renderAllergyTags();
+  switchTab('demo');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+}
+
+function closePatientModal(){
+  document.getElementById('patientModalBackdrop').classList.add('hidden');
+  document.getElementById('patientModalBackdrop').classList.remove('flex');
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+  });
+});
+
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('hidden', p.dataset.panel!==tab));
+}
+
+function renderAllergyTags(){
+  const wrap = document.getElementById('allergyTags');
+  const input = document.getElementById('f-allergy-input');
+  wrap.querySelectorAll('.tag-pill').forEach(t=>t.remove());
+  allergyTagsCurrent.forEach((tag, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'tag-pill chip chip-allergy rounded-full pl-3 pr-1.5 py-1 flex items-center gap-1.5';
+    pill.innerHTML = `${escapeHtml(tag)} <button type="button" aria-label="Remove" class="hover:text-red-900">&times;</button>`;
+    pill.querySelector('button').addEventListener('click', ()=>{
+      allergyTagsCurrent.splice(i,1); renderAllergyTags();
+    });
+    wrap.insertBefore(pill, input);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const input = document.getElementById('f-allergy-input');
+  input.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' || e.key === ','){
+      e.preventDefault();
+      const val = input.value.trim().replace(/,$/,'');
+      if (val){ allergyTagsCurrent.push(val); input.value=''; renderAllergyTags(); }
+    }
+  });
+});
+
+function savePatient(){
+  const name = document.getElementById('f-name').value.trim();
+  const dob = document.getElementById('f-dob').value;
+  const gender = document.getElementById('f-gender').value;
+  const phone = document.getElementById('f-phone').value.trim();
+
+  if (!name || !dob || !gender || !phone){
+    switchTab('demo');
+    showToast('Please fill in all required demographic fields.', true);
+    return;
+  }
+
+  const recordId = document.getElementById('patientRecordId').value;
+  const nka = document.getElementById('f-no-allergies').checked;
+
+  const data = {
+    name, dob, gender, phone,
+    email: document.getElementById('f-email').value.trim(),
+    address: document.getElementById('f-address').value.trim(),
+    blood: document.getElementById('f-blood').value,
+    emergency: document.getElementById('f-emergency').value.trim(),
+    conditions: document.getElementById('f-conditions').value.trim(),
+    surgeries: document.getElementById('f-surgeries').value.trim(),
+    meds: document.getElementById('f-meds').value.trim(),
+    family: document.getElementById('f-family').value.trim(),
+    allergies: nka ? [] : [...allergyTagsCurrent],
+    nka,
+    allergyNotes: document.getElementById('f-allergy-notes').value.trim(),
+  };
+
+  if (recordId){
+    const p = patients.find(x=>x.id===recordId);
+    Object.assign(p, data);
+    showToast('Patient record updated.');
+  } else {
+    const newPatient = { id: genPatientId(), createdAt: Date.now(), checkins: [], ...data };
+    patients.push(newPatient);
+    persist();
+    renderTable();
+    closePatientModal();
+    showToast('Patient registered successfully.');
+    openDetailModal(newPatient.id, true);
+    return;
+  }
+  persist();
+  renderTable();
+  closePatientModal();
+}
+
+function deletePatient(id){
+  const p = patients.find(x=>x.id===id);
+  if (!confirm(`Remove ${p.name} (${p.id}) from the system? This cannot be undone.`)) return;
+  patients = patients.filter(x=>x.id!==id);
+  persist();
+  renderTable();
+  showToast('Patient record removed.');
+}
+
+/* ============================================================
+   DETAIL / QR MODAL
+   ============================================================ */
+function openDetailModal(id, justRegistered){
+  const p = patients.find(x=>x.id===id);
+  const backdrop = document.getElementById('detailModalBackdrop');
+  const body = document.getElementById('detailBody');
+
+  const allergyHtml = (p.allergies && p.allergies.length)
+    ? p.allergies.map(a=>`<span class="chip chip-allergy rounded-full px-2.5 py-1 mr-1.5 mb-1.5 inline-block">${escapeHtml(a)}</span>`).join('')
+    : `<span class="text-sm text-slate-500">No known allergies</span>`;
+
+  body.innerHTML = `
+    ${justRegistered ? `<div class="rounded-xl px-4 py-3 mb-5 text-sm flex items-center gap-2" style="background:#ECFDF5; color:#065F46"><i data-lucide="check-circle-2" class="w-4 h-4"></i>Registered! Show this QR code to the patient for appointment check-in.</div>` : ''}
+
+    <div class="flex flex-col items-center mb-6">
+      <div id="qrcode" class="p-3 bg-white rounded-xl border" style="border-color:var(--line)"></div>
+      <p class="font-mono text-sm mt-3 font-semibold" style="color:var(--primary)">${p.id}</p>
+      <p class="text-xs text-slate-400">Scan at reception to check in</p>
+      <div class="flex gap-2 mt-3">
+        <button onclick="printQr('${p.id}')" class="btn-outline text-xs font-semibold px-3.5 py-2 rounded-full flex items-center gap-1.5"><i data-lucide="printer" class="w-3.5 h-3.5"></i>Print</button>
+        <button onclick="checkInPatient('${p.id}')" class="btn-teal text-xs font-semibold px-3.5 py-2 rounded-full flex items-center gap-1.5"><i data-lucide="log-in" class="w-3.5 h-3.5"></i>Check in now</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 text-sm mb-5">
+      <div><p class="text-xs text-slate-400 mb-0.5">Full Name</p><p class="font-medium">${escapeHtml(p.name)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Age / Gender</p><p class="font-medium">${ageFromDob(p.dob)} yrs · ${escapeHtml(p.gender)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Phone</p><p class="font-medium">${escapeHtml(p.phone)}</p></div>
+      <div><p class="text-xs text-slate-400 mb-0.5">Blood Group</p><p class="font-medium">${p.blood || '—'}</p></div>
+      <div class="col-span-2"><p class="text-xs text-slate-400 mb-0.5">Address</p><p class="font-medium">${escapeHtml(p.address) || '—'}</p></div>
+      <div class="col-span-2"><p class="text-xs text-slate-400 mb-0.5">Emergency Contact</p><p class="font-medium">${escapeHtml(p.emergency) || '—'}</p></div>
+    </div>
+
+    <div class="border-t pt-4 mb-4" style="border-color:var(--line)">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Medical History</p>
+      <p class="text-sm mb-1"><span class="text-slate-400">Conditions:</span> ${escapeHtml(p.conditions)||'—'}</p>
+      <p class="text-sm mb-1"><span class="text-slate-400">Surgeries:</span> ${escapeHtml(p.surgeries)||'—'}</p>
+      <p class="text-sm mb-1"><span class="text-slate-400">Medications:</span> ${escapeHtml(p.meds)||'—'}</p>
+      <p class="text-sm"><span class="text-slate-400">Family History:</span> ${escapeHtml(p.family)||'—'}</p>
+    </div>
+
+    <div class="border-t pt-4" style="border-color:var(--line)">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Allergies</p>
+      <div class="mb-1.5">${allergyHtml}</div>
+      ${p.allergyNotes ? `<p class="text-sm text-slate-600 mt-1.5">${escapeHtml(p.allergyNotes)}</p>` : ''}
+    </div>
+  `;
+
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+  if (window.lucide) lucide.createIcons();
+
+  const qrEl = document.getElementById('qrcode');
+  qrEl.innerHTML = '';
+  new QRCode(qrEl, {
+    text: JSON.stringify({ patientId: p.id, name: p.name, v: 1 }),
+    width: 168, height: 168,
+    colorDark: '#0B2A43', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+function closeDetailModal(){
+  document.getElementById('detailModalBackdrop').classList.add('hidden');
+  document.getElementById('detailModalBackdrop').classList.remove('flex');
+}
+
+function printQr(id){
+  const p = patients.find(x=>x.id===id);
+  const qrImg = document.querySelector('#qrcode img, #qrcode canvas');
+  const src = qrImg && qrImg.tagName === 'IMG' ? qrImg.src : (qrImg ? qrImg.toDataURL() : '');
+  const w = window.open('', '_blank', 'width=420,height=560');
+  w.document.write(`
+    <html><head><title>${p.id}</title></head>
+    <body style="font-family:sans-serif;text-align:center;padding:30px;">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+      <h2 style="margin-bottom:4px;">${escapeHtml(p.name)}</h2>
+      <p style="color:#666;font-family:monospace;margin-top:0;">${p.id}</p>
+      <img src="${src}" style="width:220px;height:220px;margin:20px 0;" />
+      <p style="font-size:13px;color:#888;">Present this code at reception check-in</p>
+      <script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Doctor','Nurse','Receptionist'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+window.onload = () => window.print();<\/script>
+    </body></html>
+  `);
+}
+
+/* ============================================================
+   CHECK-IN LOGIC
+   ============================================================ */
+function checkInPatient(id){
+  const p = patients.find(x=>x.id===id);
+  if (!p) { showToast('Patient ID not recognized.', true); return; }
+  if (checkedInToday(p)){
+    showToast(`${p.name} is already checked in today.`);
+    return;
+  }
+  p.checkins = p.checkins || [];
+  p.checkins.push(Date.now());
+  persist();
+  renderTable();
+  showToast(`✓ ${p.name} checked in successfully.`);
+}
+
+function manualCheckIn(){
+  const val = document.getElementById('manualIdInput').value.trim();
+  if (!val) return;
+  const p = patients.find(x=>x.id.toLowerCase() === val.toLowerCase());
+  if (!p){ showToast('No patient found with that ID.', true); return; }
+  checkInPatient(p.id);
+  document.getElementById('manualIdInput').value = '';
+}
+
+/* ============================================================
+   CAMERA QR SCANNING (reception)
+   ============================================================ */
+let scanStream = null, scanRAF = null;
+
+async function openScanModal(){
+  const backdrop = document.getElementById('scanModalBackdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+  document.getElementById('scanStatus').textContent = "Point the camera at the patient's QR code…";
+  document.getElementById('scanUnavailable').classList.add('hidden');
+  if (window.lucide) lucide.createIcons();
+
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('scanVideo');
+    video.srcObject = scanStream;
+    await video.play();
+    scanLoop();
+  } catch (err){
+    document.getElementById('scanUnavailable').classList.remove('hidden');
+  }
+}
+
+function scanLoop(){
+  const video = document.getElementById('scanVideo');
+  const canvas = document.getElementById('scanCanvas');
+  if (!video.videoWidth){ scanRAF = requestAnimationFrame(scanLoop); return; }
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = window.jsQR ? jsQR(imageData.data, imageData.width, imageData.height) : null;
+  if (code){
+    handleScanResult(code.data);
+    return;
+  }
+  scanRAF = requestAnimationFrame(scanLoop);
+}
+
+function handleScanResult(text){
+  let patientId = text;
+  try { const parsed = JSON.parse(text); if (parsed.patientId) patientId = parsed.patientId; } catch(e){}
+  const p = patients.find(x=>x.id === patientId);
+  if (p){
+    checkInPatient(p.id);
+    document.getElementById('scanStatus').innerHTML = `<span style="color:var(--teal)">✓ ${escapeHtml(p.name)} checked in</span>`;
+    setTimeout(()=>{ if(scanStream) scanLoop(); }, 1800);
+  } else {
+    document.getElementById('scanStatus').innerHTML = `<span style="color:var(--emergency)">QR code not recognized</span>`;
+    scanRAF = requestAnimationFrame(scanLoop);
+  }
+}
+
+function closeScanModal(){
+  document.getElementById('scanModalBackdrop').classList.add('hidden');
+  document.getElementById('scanModalBackdrop').classList.remove('flex');
+  if (scanRAF) cancelAnimationFrame(scanRAF);
+  if (scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream = null; }
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(msg, isError){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast rounded-xl px-4 py-3 text-sm font-medium shadow-lg text-white';
+  t.style.background = isError ? 'var(--emergency)' : 'var(--ink)';
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=> t.remove(), 3000);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', ()=>{
+  seedIfEmpty();
+  renderTable();
+  document.getElementById('openNewPatientBtn').addEventListener('click', ()=>openPatientModal());
+  document.getElementById('openScanBtn').addEventListener('click', openScanModal);
+  document.getElementById('manualIdInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); manualCheckIn(); } });
+  [document.getElementById('patientModalBackdrop'), document.getElementById('detailModalBackdrop'), document.getElementById('scanModalBackdrop')].forEach(bd=>{
+    bd.addEventListener('click', (e)=>{ if (e.target === bd){
+      if (bd.id==='patientModalBackdrop') closePatientModal();
+      if (bd.id==='detailModalBackdrop') closeDetailModal();
+      if (bd.id==='scanModalBackdrop') closeScanModal();
+    }});
+  });
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+</body>
+</html>

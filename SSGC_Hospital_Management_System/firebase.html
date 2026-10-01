@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Firebase Database Explorer — SSGC Hospital</title>
+<meta name="description" content="Cloud Firestore database explorer, collection inspector and synchronization manager for SSGC Hospital." />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js"></script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+  :root{
+    --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3;
+    --bg:#FFFFFF; --bg-soft:#F8FAFC; --accent:#2563EB;
+    --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706;
+  }
+  body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  .btn-primary{background:var(--primary);color:white;transition:all .2s;}
+  .btn-primary:hover{background:#0c3d68;}
+  .btn-teal{background:var(--teal);color:white;transition:all .2s;}
+  .btn-teal:hover{background:#239484;}
+  .btn-ghost{color:var(--ink);border:1px solid var(--line);background:white;transition:all .2s;}
+  .btn-ghost:hover{background:var(--bg-soft);border-color:#CBD5E1;}
+  .card{background:white;border-radius:20px;border:1px solid var(--line);padding:24px;}
+  .chip{border:1px solid var(--line);background:white;}
+  pre code{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Top Bar -->
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <a href="dashboard.html" class="flex items-center gap-2.5">
+        <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+          <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <div>
+          <p class="font-display font-semibold text-base" style="color:var(--ink)">SSGC Hospital</p>
+          <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Firebase Cloud Database</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="dashboard.html" class="btn-ghost text-sm font-medium px-4 py-2 rounded-full flex items-center gap-2">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Admin Dashboard
+      </a>
+      <button onclick="window.FirebaseDB.openSettingsModal()" class="btn-primary text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-2">
+        <i data-lucide="settings" class="w-4 h-4"></i> Configure Firebase
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8 flex-1 w-full space-y-8">
+
+  <!-- Hero Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0B2A43] to-[#0F4C81] text-white p-8 rounded-3xl shadow-xl">
+    <div>
+      <div class="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-mono text-amber-300 mb-3 border border-white/15">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFCA28"><path d="M4.1 13.9L7.3 2.1c.1-.5.7-.7 1-.3l3.6 6.8L8.6 2.4c-.2-.5.5-.9.9-.5l10.4 12c.4.5 0 1.2-.6 1.2H4.7c-.6 0-1-.6-.6-1.2z"/></svg>
+        Cloud Firestore & Realtime Sync Engine
+      </div>
+      <h1 class="font-display text-2xl md:text-3xl font-bold">Cloud Database Console</h1>
+      <p class="text-slate-300 text-sm mt-1 max-w-xl">
+        Manage hospital records stored in Google Cloud Firestore. Supports seamless bi-directional synchronization, offline fallback, and live database telemetry.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button onclick="seedAndPushToCloud()" class="btn-teal px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg">
+        <i data-lucide="cloud-upload" class="w-4 h-4"></i> Upload All to Cloud
+      </button>
+      <button onclick="pullFromCloud()" class="bg-white/15 hover:bg-white/25 text-white px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 transition-all">
+        <i data-lucide="cloud-download" class="w-4 h-4"></i> Pull from Cloud
+      </button>
+    </div>
+  </div>
+
+  <!-- Connection Status HUD -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="card p-5">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Connection Status</span>
+      <div class="flex items-center gap-3 mt-2">
+        <span id="hudDot" class="w-3.5 h-3.5 rounded-full bg-amber-500 animate-pulse"></span>
+        <span id="hudStatus" class="font-display font-bold text-lg">Checking...</span>
+      </div>
+      <p id="hudSub" class="text-xs text-slate-500 mt-1 font-mono">Local Storage Fallback</p>
+    </div>
+
+    <div class="card p-5">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Project ID</span>
+      <p id="hudProject" class="font-mono font-bold text-lg text-slate-800 mt-2 truncate">None configured</p>
+      <p class="text-xs text-slate-500 mt-1">Google Cloud Platform</p>
+    </div>
+
+    <div class="card p-5">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Synced Records</span>
+      <p id="hudRecordCount" class="font-mono font-bold text-lg text-slate-800 mt-2">0</p>
+      <p class="text-xs text-slate-500 mt-1">Across 14 collections</p>
+    </div>
+
+    <div class="card p-5">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Live Sync Listener</span>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <p id="hudEngine" class="font-mono font-bold text-lg text-emerald-600">Active</p>
+      </div>
+      <p class="text-xs text-slate-500 mt-1">Snapshot subscriptions</p>
+    </div>
+  </div>
+
+  <!-- Collections Explorer -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Collections List -->
+    <div class="card lg:col-span-1 p-5 space-y-3">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-display font-bold text-base">Collections</h3>
+        <span id="colCountBadge" class="text-xs bg-slate-100 font-mono px-2 py-0.5 rounded-full text-slate-600">14 total</span>
+      </div>
+      <div id="collectionsList" class="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- Collection Document View -->
+    <div class="card lg:col-span-2 p-6 flex flex-col">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-wider text-teal-600 font-semibold" id="activeColLabel">Collection</span>
+          <h2 class="font-display font-bold text-xl" id="activeColName">patients</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="searchRecordInput" type="text" placeholder="Filter documents..." class="px-3 py-1.5 text-xs rounded-full border border-slate-200 font-mono w-44" />
+          <button onclick="refreshActiveCollection()" class="p-2 rounded-full hover:bg-slate-100 text-slate-600"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+
+      <!-- Document Table / JSON Viewer -->
+      <div class="mt-4 flex-1 overflow-x-auto min-h-[300px]">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-slate-100 text-slate-400 font-mono uppercase text-[11px]" id="recordsTableHead">
+              <th class="py-2 px-3">Doc ID</th>
+              <th class="py-2 px-3">Data Preview</th>
+              <th class="py-2 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordsTableBody" class="divide-y divide-slate-100">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between text-xs text-slate-500 font-mono">
+        <span id="docCountSummary">0 documents found</span>
+        <button onclick="exportCurrentCollection()" class="hover:text-blue-600 flex items-center gap-1 font-semibold">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Collection JSON
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cloud Firestore Security Rules Helper -->
+  <div class="card p-6 bg-slate-900 text-white border-slate-800">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div class="flex items-center gap-2.5">
+        <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+        <div>
+          <h3 class="font-display font-bold text-base text-white">Recommended Firestore Security Rules</h3>
+          <p class="text-xs text-slate-400">Paste into Firebase Console &gt; Firestore Database &gt; Rules</p>
+        </div>
+      </div>
+      <button onclick="copyRules()" class="bg-white/10 hover:bg-white/20 text-xs font-semibold px-4 py-2 rounded-full border border-white/20 flex items-center gap-1.5">
+        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Rules
+      </button>
+    </div>
+    <div class="bg-black/50 p-4 rounded-xl font-mono text-xs text-emerald-300 overflow-x-auto border border-white/10">
+      <pre id="rulesCode">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // SSGC Hospital Management System Security Rules
+    // Allows full read/write for verified medical staff during deployment/testing
+    match /{document=**} {
+      allow read, write: if true; // Test mode (change to 'if request.auth != null' for prod)
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+</main>
+
+<footer class="py-6 border-t border-slate-200 text-center text-xs text-slate-500 font-mono">
+  SSGC Hospital Management System &bull; Powered by Google Cloud Firestore
+</footer>
+
+<!-- Document Detail Modal -->
+<div id="docModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200">
+    <div class="p-4 px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+      <div>
+        <h4 class="font-display font-bold text-base text-slate-800" id="docModalTitle">Document Details</h4>
+        <p class="font-mono text-xs text-teal-600" id="docModalId"></p>
+      </div>
+      <button onclick="closeDocModal()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="p-6 overflow-y-auto flex-1 font-mono text-xs bg-slate-900 text-emerald-400 rounded-b-2xl">
+      <pre id="docModalJson"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+  let activeColKey = 'ssgc_patients_v1';
+  let activeColName = 'patients';
+
+  const COLLECTIONS = [
+    { key: 'ssgc_patients_v1', name: 'patients', title: 'Patients Registry', icon: 'users' },
+    { key: 'ssgc_appointments_v1', name: 'appointments', title: 'Appointments', icon: 'calendar' },
+    { key: 'ssgc_doctors_v1', name: 'doctors', title: 'Doctor Directory', icon: 'stethoscope' },
+    { key: 'ssgc_staff_v1', name: 'staff', title: 'Hospital Staff', icon: 'contact' },
+    { key: 'ssgc_beds_v1', name: 'beds', title: 'Beds & Ward Allocations', icon: 'bed-single' },
+    { key: 'ssgc_bills_v1', name: 'bills', title: 'Invoices & Billing', icon: 'receipt' },
+    { key: 'ssgc_inventory_v1', name: 'inventory', title: 'Pharmacy Medicines', icon: 'pill' },
+    { key: 'ssgc_prescriptions_v1', name: 'prescriptions', title: 'Prescriptions', icon: 'file-text' },
+    { key: 'ssgc_tests_v1', name: 'lab_tests', title: 'Lab Orders & Diagnostics', icon: 'flask-conical' },
+    { key: 'ssgc_ehr_v1', name: 'ehr_records', title: 'EHR Visit Records', icon: 'clipboard-list' },
+    { key: 'ssgc_reminders_v1', name: 'reminders', title: 'Patient Reminders', icon: 'bell' },
+    { key: 'ssgc_feedback_v1', name: 'feedback', title: 'Doctor Feedback', icon: 'star' },
+    { key: 'ssgc_attendance_v1', name: 'attendance', title: 'Staff Shifts', icon: 'clock' },
+    { key: 'ssgc_audit_v1', name: 'audit_logs', title: 'System Audit Logs', icon: 'shield-alert' }
+  ];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+    renderCollectionsList();
+    renderActiveCollection();
+    updateHUD();
+
+    document.getElementById('searchRecordInput').addEventListener('input', renderActiveCollection);
+    window.addEventListener('ssgc_data_synced', () => {
+      renderCollectionsList();
+      renderActiveCollection();
+      updateHUD();
+    });
+  });
+
+  function updateHUD() {
+    const isConn = window.FirebaseDB && window.FirebaseDB.isConfigured();
+    const cfg = window.FirebaseDB ? window.FirebaseDB.getConfig() : {};
+
+    const dot = document.getElementById('hudDot');
+    const status = document.getElementById('hudStatus');
+    const sub = document.getElementById('hudSub');
+    const proj = document.getElementById('hudProject');
+
+    if (isConn) {
+      dot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse';
+      status.textContent = 'Cloud Connected';
+      status.className = 'font-display font-bold text-lg text-emerald-600';
+      sub.textContent = 'Cloud Firestore Real-Time';
+      proj.textContent = cfg.projectId || 'Active';
+    } else {
+      dot.className = 'w-3.5 h-3.5 rounded-full bg-amber-500';
+      status.textContent = 'Local Demo Mode';
+      status.className = 'font-display font-bold text-lg text-amber-600';
+      sub.textContent = 'Offline Fallback (localStorage)';
+      proj.textContent = cfg.projectId || 'None';
+    }
+
+    let total = 0;
+    COLLECTIONS.forEach(c => {
+      const data = JSON.parse(localStorage.getItem(c.key) || '[]');
+      total += Array.isArray(data) ? data.length : 1;
+    });
+    document.getElementById('hudRecordCount').textContent = total;
+  }
+
+  function renderCollectionsList() {
+    const list = document.getElementById('collectionsList');
+    list.innerHTML = COLLECTIONS.map(c => {
+      const raw = localStorage.getItem(c.key);
+      const count = raw ? (Array.isArray(JSON.parse(raw)) ? JSON.parse(raw).length : 1) : 0;
+      const isActive = c.key === activeColKey;
+      return `
+        <button onclick="selectCollection('${c.key}', '${c.name}')" class="w-full text-left p-3 rounded-xl transition-all flex items-center justify-between ${isActive ? 'bg-primary text-white shadow-md' : 'hover:bg-slate-100 text-slate-700'}">
+          <div class="flex items-center gap-2.5 truncate">
+            <i data-lucide="${c.icon}" class="w-4 h-4 shrink-0 ${isActive ? 'text-teal-300' : 'text-slate-400'}"></i>
+            <span class="text-xs font-semibold truncate">${c.title}</span>
+          </div>
+          <span class="font-mono text-[11px] px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}">${count}</span>
+        </button>
+      `;
+    }).join('');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function selectCollection(key, name) {
+    activeColKey = key;
+    activeColName = name;
+    document.getElementById('activeColName').textContent = name;
+    document.getElementById('searchRecordInput').value = '';
+    renderCollectionsList();
+    renderActiveCollection();
+  }
+
+  function renderActiveCollection() {
+    const raw = localStorage.getItem(activeColKey);
+    let items = [];
+    try {
+      items = JSON.parse(raw || '[]');
+      if (!Array.isArray(items)) items = [items];
+    } catch(e) { items = []; }
+
+    const query = document.getElementById('searchRecordInput').value.toLowerCase().trim();
+    if (query) {
+      items = items.filter(item => JSON.stringify(item).toLowerCase().includes(query));
+    }
+
+    const tbody = document.getElementById('recordsTableBody');
+    document.getElementById('docCountSummary').textContent = `${items.length} records in ${activeColName}`;
+
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-400 font-mono text-xs">No records found. Click "Upload All to Cloud" or add records via app pages.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map((item, index) => {
+      const docId = item.id || item.patientUid || item.key || `doc_${index}`;
+      const preview = Object.entries(item)
+        .filter(([k]) => !['id', 'key'].includes(k))
+        .slice(0, 3)
+        .map(([k, v]) => `<span class="text-slate-500 font-mono">${k}:</span> <strong>${typeof v==='object' ? JSON.stringify(v).slice(0,20)+'...' : v}</strong>`)
+        .join(' &bull; ');
+
+      return `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-3 px-3 font-mono text-teal-700 font-semibold whitespace-nowrap">${docId}</td>
+          <td class="py-3 px-3 text-slate-600 truncate max-w-md">${preview}</td>
+          <td class="py-3 px-3 text-right whitespace-nowrap">
+            <button onclick="viewDocDetails('${escapeQuotes(docId)}', '${escapeQuotes(JSON.stringify(item))}')" class="btn-ghost px-2.5 py-1 rounded-full text-[11px] font-semibold">Inspect</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function escapeQuotes(str) {
+    return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
+  function viewDocDetails(id, jsonStr) {
+    document.getElementById('docModalId').textContent = id;
+    try {
+      const parsed = JSON.parse(jsonStr.replace(/&quot;/g, '"'));
+      document.getElementById('docModalJson').textContent = JSON.stringify(parsed, null, 2);
+    } catch(e) {
+      document.getElementById('docModalJson').textContent = jsonStr;
+    }
+    document.getElementById('docModal').classList.remove('hidden');
+    document.getElementById('docModal').classList.add('flex');
+  }
+
+  function closeDocModal() {
+    document.getElementById('docModal').classList.add('hidden');
+    document.getElementById('docModal').classList.remove('flex');
+  }
+
+  function refreshActiveCollection() {
+    renderActiveCollection();
+    updateHUD();
+  }
+
+  function exportCurrentCollection() {
+    const raw = localStorage.getItem(activeColKey) || '[]';
+    const blob = new Blob([raw], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeColName}_export.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function seedAndPushToCloud() {
+    if (!window.FirebaseDB) return;
+    try {
+      const res = await window.FirebaseDB.pushAllToFirestore();
+      alert(`🚀 Successfully synced ${res.totalItems} documents to Google Cloud Firestore!`);
+      updateHUD();
+      renderCollectionsList();
+      renderActiveCollection();
+    } catch (err) {
+      alert('Error syncing to Firestore: ' + err.message + '\n\nOpening Firebase Settings to configure your Project ID and API Key.');
+      window.FirebaseDB.openSettingsModal();
+    }
+  }
+
+  async function pullFromCloud() {
+    if (!window.FirebaseDB) return;
+    try {
+      const res = await window.FirebaseDB.pullAllFromFirestore();
+      alert(`⬇️ Pulled ${res.totalPulled} documents from Google Cloud Firestore!`);
+      updateHUD();
+      renderCollectionsList();
+      renderActiveCollection();
+    } catch (err) {
+      alert('Error pulling from Firestore: ' + err.message);
+    }
+  }
+
+  function copyRules() {
+    const code = document.getElementById('rulesCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      alert('Copied Security Rules to clipboard!');
+    });
+  }
+</script>
+</body>
+</html>

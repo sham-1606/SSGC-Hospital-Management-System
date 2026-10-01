@@ -1,0 +1,16 @@
+{
+  "name": "fsd-2",
+  "version": "1.0.0",
+  "description": "SSGC Hospital Management System Prototype",
+  "scripts": {
+    "start": "python -m http.server 8080",
+    "dev": "python -m http.server 8080"
+  },
+  "keywords": [
+    "hospital-management",
+    "healthcare",
+    "prototype"
+  ],
+  "author": "",
+  "license": "ISC"
+}

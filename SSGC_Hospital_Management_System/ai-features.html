@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI &amp; Telemedicine Suite — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{ --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3; --bg:#FFFFFF; --bg-soft:#F8FAFC; --accent:#2563EB; --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706; --violet:#7C3AED; }
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  .btn-primary{background:var(--primary); color:white; transition:all .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+  .btn-emergency{background:var(--emergency); color:white; transition:all .2s ease;}
+  .btn-emergency:hover{background:#b91c1c;}
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  .symptom-chip{border:1.5px solid var(--line); background:white; transition:all .15s ease; cursor:pointer;}
+  .symptom-chip.selected{border-color:var(--primary); background:#EFF6FF; color:var(--primary); font-weight:600;}
+  .tab-btn{color:#64748B; border-bottom:2px solid transparent; transition:all .2s ease;}
+  .tab-btn.active{color:var(--primary); border-bottom-color:var(--teal); font-weight:600;}
+  @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(43,179,163,.5);}100%{box-shadow:0 0 0 14px rgba(43,179,163,0);}}
+  .pulse-ring{animation:pulseRing 1.6s ease-out infinite;}
+  @keyframes waveBar{0%,100%{transform:scaleY(.3);}50%{transform:scaleY(1);}}
+  .wave-bar{animation:waveBar 1s ease-in-out infinite;}
+  .video-panel{background:linear-gradient(135deg,#0B2A43,#0F4C81); position:relative; overflow:hidden;}
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+    <a href="home.html" class="flex items-center gap-2.5">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">AI &amp; Telemedicine Suite</p>
+      </div>
+    </a>
+    <a href="dashboard.html" class="btn-ghost flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</a>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <div class="mb-8">
+    <span class="chip rounded-full px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5 mb-3" style="color:var(--violet)"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i>Prioritized advanced-scope showcase</span>
+    <p class="font-display text-2xl font-semibold">AI Symptom Triage &amp; Telemedicine</p>
+    <p class="text-sm text-slate-500 max-w-2xl mt-1">Per the project's scope note, these two advanced features were built out fully to demonstrate the AI/telemedicine layer, while the remaining advanced items are documented as planned/future scope below.</p>
+  </div>
+
+  <div class="flex gap-6 border-b mb-6" style="border-color:var(--line)">
+    <button class="tab-btn active px-1 pb-3 text-sm" data-tab="triage">Symptom Checker</button>
+    <button class="tab-btn px-1 pb-3 text-sm" data-tab="tele">Telemedicine</button>
+    <button class="tab-btn px-1 pb-3 text-sm" data-tab="roadmap">Roadmap</button>
+  </div>
+
+  <!-- SYMPTOM CHECKER -->
+  <section id="tab-triage" class="grid lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-2xl border p-6" style="border-color:var(--line)">
+      <p class="font-display font-semibold mb-1">Tell us what you're experiencing</p>
+      <p class="text-xs text-slate-500 mb-4">Select all symptoms that apply. This is a rule-based triage aid, not a diagnosis.</p>
+      <div id="symptomGrid" class="flex flex-wrap gap-2 mb-5"></div>
+
+      <label class="text-xs font-medium text-slate-600">Symptom severity</label>
+      <input id="severity" type="range" min="1" max="10" value="4" class="w-full mt-1 mb-1"/>
+      <div class="flex justify-between text-[10px] text-slate-400 mb-5"><span>Mild</span><span>Severe</span></div>
+
+      <button id="checkBtn" class="btn-primary w-full rounded-xl py-3 font-semibold text-sm">Check Symptoms</button>
+      <p class="text-xs text-slate-400 mt-3">If you're experiencing chest pain, difficulty breathing, severe bleeding, or loss of consciousness, call emergency services immediately instead of using this tool.</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border p-6" style="border-color:var(--line)">
+      <p class="font-display font-semibold mb-4">Triage Result</p>
+      <div id="triageEmpty" class="text-sm text-slate-400 py-16 text-center">
+        <i data-lucide="stethoscope" class="w-8 h-8 mx-auto mb-3 text-slate-300"></i>
+        Select symptoms and run the check to see a recommendation.
+      </div>
+      <div id="triageResult" class="hidden space-y-4"></div>
+    </div>
+  </section>
+
+  <!-- TELEMEDICINE -->
+  <section id="tab-tele" class="hidden">
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+        <div class="grid sm:grid-cols-2 gap-4 mb-4">
+          <div class="video-panel rounded-2xl h-56 flex items-center justify-center">
+            <div id="doctorAvatarWrap" class="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-white font-display text-xl">DR</div>
+            <span class="absolute bottom-3 left-3 text-white text-xs bg-black/30 px-2 py-1 rounded-full">Doctor</span>
+          </div>
+          <div class="video-panel rounded-2xl h-56 flex items-center justify-center" style="background:linear-gradient(135deg,#2BB3A3,#0F4C81)">
+            <div class="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-white font-display text-xl">PT</div>
+            <span class="absolute bottom-3 left-3 text-white text-xs bg-black/30 px-2 py-1 rounded-full">You</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-center gap-3">
+          <button id="muteBtn" class="btn-ghost border rounded-full p-3" style="border-color:var(--line)"><i data-lucide="mic" class="w-4 h-4"></i></button>
+          <button id="videoBtn" class="btn-ghost border rounded-full p-3" style="border-color:var(--line)"><i data-lucide="video" class="w-4 h-4"></i></button>
+          <button id="callBtn" class="btn-teal rounded-full px-6 py-3 font-semibold text-sm flex items-center gap-2"><i data-lucide="phone-call" class="w-4 h-4"></i>Start Consultation</button>
+          <button id="endBtn" class="hidden btn-emergency rounded-full p-3"><i data-lucide="phone-off" class="w-4 h-4"></i></button>
+        </div>
+        <p id="callStatus" class="text-center text-xs text-slate-400 mt-3">Not connected</p>
+      </div>
+
+      <div class="bg-white rounded-2xl border p-5 h-fit" style="border-color:var(--line)">
+        <p class="font-display font-semibold mb-3">Today's Video Consultations</p>
+        <div id="teleList" class="space-y-3"></div>
+        <p class="text-xs text-slate-400 mt-4">Production build connects via Jitsi Meet SDK (self-hostable, free tier) or Agora, linked directly to the appointment record.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="tab-roadmap" class="hidden">
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+        <p class="font-semibold text-sm mb-2 flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4" style="color:var(--teal)"></i>Implemented in this build</p>
+        <ul class="text-sm text-slate-600 space-y-1.5 list-disc pl-5">
+          <li>Rule-based AI symptom checker &amp; triage routing</li>
+          <li>Simulated telemedicine consultation UI, linked to appointments</li>
+          <li>Simulated OCR + NLP prescription digitization (EHR module)</li>
+          <li>Rule-based patient-summary assistant (EHR module)</li>
+          <li>Simulated bed-occupancy forecast (Admission &amp; Bed module)</li>
+          <li>No-show risk watchlist surfaced on the Dashboard</li>
+        </ul>
+      </div>
+      <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+        <p class="font-semibold text-sm mb-2 flex items-center gap-2"><i data-lucide="circle-dashed" class="w-4 h-4 text-slate-400"></i>Planned / future scope</p>
+        <ul class="text-sm text-slate-600 space-y-1.5 list-disc pl-5">
+          <li>Production WebRTC video via Jitsi Meet SDK / Agora</li>
+          <li>Trained scikit-learn models for no-show &amp; bed-occupancy prediction</li>
+          <li>Real OCR pipeline (Tesseract / Google Vision API)</li>
+          <li>Live LLM API integration (Claude / OpenAI) for chat summaries</li>
+          <li>SMS/email delivery via Twilio &amp; SMTP</li>
+          <li>Razorpay / Stripe live payment processing</li>
+          <li>Multi-language (Hindi/regional) toggle &amp; dark mode / accessibility toggle</li>
+          <li>Server-side auth with JWT/OAuth and encrypted data at rest</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Doctor','Nurse','Patient'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+
+document.addEventListener('DOMContentLoaded', () => window.lucide && lucide.createIcons());
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['triage','tele','roadmap'].forEach(t => document.getElementById('tab-'+t).classList.toggle('hidden', t !== btn.dataset.tab));
+  });
+});
+
+/* ---- symptom checker ---- */
+const SYMPTOMS = ['Fever','Cough','Sore throat','Chest pain','Shortness of breath','Headache','Dizziness','Abdominal pain','Rash','Fatigue','Nausea','Joint pain'];
+let selected = new Set();
+const grid = document.getElementById('symptomGrid');
+grid.innerHTML = SYMPTOMS.map(s => `<button type="button" class="symptomBtn symptom-chip rounded-full px-4 py-2 text-sm" data-s="${s}">${s}</button>`).join('');
+grid.querySelectorAll('.symptomBtn').forEach(b => b.addEventListener('click', () => {
+  const s = b.dataset.s;
+  selected.has(s) ? selected.delete(s) : selected.add(s);
+  b.classList.toggle('selected');
+}));
+
+function classify(symptoms, severity){
+  const has = s => symptoms.has(s);
+  if ((has('Chest pain') && has('Shortness of breath')) || (severity >= 9 && has('Chest pain'))){
+    return { level:'Emergency', dept:'Cardiology / Emergency Room', color:'#DC2626',
+      note:'Combination of chest pain and breathing difficulty can indicate a cardiac or respiratory emergency.' };
+  }
+  if (has('Abdominal pain') && severity >= 7){
+    return { level:'Urgent', dept:'General Surgery / Gastroenterology', color:'#D97706',
+      note:'Severe abdominal pain warrants same-day evaluation to rule out an acute condition.' };
+  }
+  if (has('Fever') && has('Cough') && has('Shortness of breath')){
+    return { level:'Urgent', dept:'Pulmonology / General Medicine', color:'#D97706',
+      note:'Fever with respiratory symptoms should be assessed promptly.' };
+  }
+  if (has('Headache') && has('Dizziness') && severity >= 6){
+    return { level:'Urgent', dept:'Neurology', color:'#D97706',
+      note:'Persistent headache with dizziness at this severity is best assessed by a neurologist soon.' };
+  }
+  if (has('Fever') && has('Sore throat')){
+    return { level:'Routine', dept:'General Medicine / ENT', color:'#2BB3A3',
+      note:'Likely a common infection — a routine consultation is recommended within a few days.' };
+  }
+  if (has('Rash') || has('Joint pain')){
+    return { level:'Routine', dept:'Dermatology / Rheumatology', color:'#2BB3A3',
+      note:'Non-urgent — book a routine outpatient consultation.' };
+  }
+  if (symptoms.size === 0){
+    return null;
+  }
+  return { level: severity >= 7 ? 'Urgent' : 'Routine', dept:'General Medicine', color: severity >= 7 ? '#D97706' : '#2BB3A3',
+    note:'Based on the symptoms selected, a general medicine consultation is recommended.' };
+}
+
+document.getElementById('checkBtn').addEventListener('click', () => {
+  const severity = Number(document.getElementById('severity').value);
+  const result = classify(selected, severity);
+  document.getElementById('triageEmpty').classList.toggle('hidden', !!result);
+  const box = document.getElementById('triageResult');
+  if (!result){ box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="rounded-xl p-4" style="background:${result.color}14; border:1px solid ${result.color}55">
+      <p class="text-xs uppercase tracking-wide font-mono mb-1" style="color:${result.color}">Urgency Level</p>
+      <p class="font-display text-xl font-semibold" style="color:${result.color}">${result.level}</p>
+    </div>
+    <div>
+      <p class="text-xs text-slate-500 mb-1">Recommended department</p>
+      <p class="font-semibold text-sm">${result.dept}</p>
+    </div>
+    <p class="text-sm text-slate-600">${result.note}</p>
+    <p class="text-xs text-slate-400 pt-2 border-t" style="border-color:var(--line)">This tool provides general triage guidance only and does not replace professional medical advice. For emergencies, call your local emergency number immediately.</p>
+    ${result.level !== 'Routine' ? `<a href="appointment-management.html" class="btn-primary block text-center rounded-xl py-2.5 font-semibold text-sm">Book an appointment now</a>` : `<a href="appointment-management.html" class="btn-outline block text-center rounded-xl py-2.5 font-semibold text-sm">Book a routine appointment</a>`}
+  `;
+});
+
+/* ---- telemedicine mock ---- */
+const teleList = document.getElementById('teleList');
+const SAMPLE_TELE = [
+  { patient:'Ayesha Raza', doctor:'Dr. Amina Farooq', time:'11:00 AM', status:'Upcoming' },
+  { patient:'Hassan Iqbal', doctor:'Dr. Bilal Sheikh', time:'2:30 PM', status:'Upcoming' }
+];
+teleList.innerHTML = SAMPLE_TELE.map(t => `
+  <div class="chip rounded-xl p-3">
+    <p class="text-sm font-medium">${t.patient}</p>
+    <p class="text-xs text-slate-500">${t.doctor} · ${t.time}</p>
+  </div>`).join('');
+
+let muted = false, videoOff = false, inCall = false;
+document.getElementById('muteBtn').addEventListener('click', function(){
+  muted = !muted; this.style.color = muted ? '#DC2626' : '';
+  lucide.createIcons();
+});
+document.getElementById('videoBtn').addEventListener('click', function(){
+  videoOff = !videoOff; this.style.color = videoOff ? '#DC2626' : '';
+});
+document.getElementById('callBtn').addEventListener('click', function(){
+  document.getElementById('callStatus').textContent = 'Connecting...';
+  this.disabled = true;
+  setTimeout(() => {
+    document.getElementById('callStatus').innerHTML = '<span class="inline-block w-2 h-2 rounded-full pulse-ring" style="background:#2BB3A3"></span> Connected — 00:01';
+    document.getElementById('callBtn').classList.add('hidden');
+    document.getElementById('endBtn').classList.remove('hidden');
+    inCall = true;
+    let secs = 1;
+    window._teleTimer = setInterval(() => {
+      secs++;
+      const m = String(Math.floor(secs/60)).padStart(2,'0'), s = String(secs%60).padStart(2,'0');
+      document.getElementById('callStatus').innerHTML = `<span class="inline-block w-2 h-2 rounded-full pulse-ring" style="background:#2BB3A3"></span> Connected — ${m}:${s}`;
+    }, 1000);
+  }, 1400);
+});
+document.getElementById('endBtn').addEventListener('click', () => {
+  clearInterval(window._teleTimer);
+  document.getElementById('callStatus').textContent = 'Call ended';
+  document.getElementById('endBtn').classList.add('hidden');
+  document.getElementById('callBtn').classList.remove('hidden');
+  document.getElementById('callBtn').disabled = false;
+  inCall = false;
+});
+</script>
+</body>
+</html>

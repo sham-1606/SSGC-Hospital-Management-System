@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pharmacy &amp; Inventory — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{ --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3; --bg:#FFFFFF; --bg-soft:#F8FAFC; --accent:#2563EB; --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706; }
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  .btn-primary{background:var(--primary); color:white; transition:all .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  input:focus, select:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(43,179,163,0.15);}
+  .modal-backdrop{background:rgba(11,42,67,0.55); backdrop-filter:blur(2px);}
+  .modal-panel{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+  .toast{animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+  table thead th{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#64748B; font-weight:600;}
+  table tbody tr{transition:background-color .15s ease;}
+  table tbody tr:hover{background:#F8FAFC;}
+  .status-dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+  .tab-btn{color:#64748B; border-bottom:2px solid transparent; transition:all .2s ease;}
+  .tab-btn.active{color:var(--primary); border-bottom-color:var(--teal); font-weight:600;}
+  .stock-bar{height:6px; border-radius:999px; background:#E2E8F0; overflow:hidden;}
+  .stock-fill{height:100%; border-radius:999px;}
+  @keyframes ring{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .alert-ring{animation:ring 1.6s ease-in-out infinite;}
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+    <a href="home.html" class="flex items-center gap-2.5">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Pharmacy &amp; Inventory</p>
+      </div>
+    </a>
+    <div class="flex items-center gap-2 md:gap-3">
+      <a href="dashboard.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</a>
+      <a href="ehr.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="file-heart" class="w-4 h-4"></i> EHR</a>
+      <button id="openAddMedBtn" class="btn-primary text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2"><i data-lucide="package-plus" class="w-4 h-4"></i> Add Medicine</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Medicines in Stock</p>
+      <p class="font-mono text-2xl font-semibold" id="statTotal" style="color:var(--primary)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:#FCA5A5; background:#FEF2F2">
+      <p class="text-xs mb-1" style="color:#B91C1C">Low Stock Alerts</p>
+      <p class="font-mono text-2xl font-semibold" id="statLow" style="color:#B91C1C">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:#FDE68A; background:#FFFBEB">
+      <p class="text-xs mb-1" style="color:#92400E">Expiring &lt; 60 Days</p>
+      <p class="font-mono text-2xl font-semibold" id="statExpiring" style="color:#92400E">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Pending Prescriptions</p>
+      <p class="font-mono text-2xl font-semibold" id="statRx" style="color:var(--accent)">0</p>
+    </div>
+  </div>
+
+  <div class="flex gap-6 border-b mb-6" style="border-color:var(--line)">
+    <button class="tab-btn active px-1 pb-3 text-sm" data-tab="inventory">Inventory</button>
+    <button class="tab-btn px-1 pb-3 text-sm" data-tab="prescriptions">Prescription Fulfillment</button>
+  </div>
+
+  <section id="tab-inventory">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <div class="relative flex-1 min-w-[220px]">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input id="searchInput" placeholder="Search medicine name or category..." class="w-full pl-10 pr-4 py-2.5 rounded-full border text-sm" style="border-color:var(--line)"/>
+      </div>
+      <select id="alertFilter" class="px-3 py-2.5 rounded-full border text-sm" style="border-color:var(--line)">
+        <option value="">All Medicines</option>
+        <option value="low">Low Stock Only</option>
+        <option value="expiring">Expiring Soon</option>
+      </select>
+    </div>
+    <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-left border-b" style="border-color:var(--line)">
+            <th class="px-5 py-3">Medicine</th><th class="px-5 py-3">Category</th><th class="px-5 py-3">Stock</th>
+            <th class="px-5 py-3">Expiry</th><th class="px-5 py-3">Price</th><th class="px-5 py-3">Status</th><th class="px-5 py-3"></th>
+          </tr></thead>
+          <tbody id="medsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-prescriptions" class="hidden">
+    <div id="rxList" class="space-y-3"></div>
+  </section>
+</main>
+
+<!-- ADD/EDIT MEDICINE MODAL -->
+<div id="medModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold" id="medModalTitle">Add Medicine</p>
+      <button class="medModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="medForm" class="space-y-3">
+      <input type="hidden" id="medId"/>
+      <div><label class="text-xs font-medium text-slate-600">Medicine Name</label>
+        <input id="medName" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Category</label>
+        <input id="medCategory" required placeholder="e.g. Antibiotic" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-medium text-slate-600">Stock Quantity</label>
+          <input id="medStock" type="number" min="0" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+        <div><label class="text-xs font-medium text-slate-600">Reorder Level</label>
+          <input id="medReorder" type="number" min="0" required value="20" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-medium text-slate-600">Unit Price (Rs.)</label>
+          <input id="medPrice" type="number" min="0" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+        <div><label class="text-xs font-medium text-slate-600">Expiry Date</label>
+          <input id="medExpiry" type="date" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      </div>
+      <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm mt-2">Save Medicine</button>
+    </form>
+  </div>
+</div>
+
+<div id="toastRoot" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2"></div>
+
+<script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Pharmacist','Doctor'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+
+document.addEventListener('DOMContentLoaded', () => window.lucide && lucide.createIcons());
+
+const MEDS_KEY = 'ssgc_medicines_v1';
+const RX_KEY = 'ssgc_prescriptions_v1';
+let medicines = [], prescriptions = [];
+
+function pad2(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function daysUntil(dateStr){ return Math.ceil((new Date(dateStr) - new Date(todayStr())) / 86400000); }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n){ return 'Rs. ' + Number(n||0).toLocaleString('en-PK'); }
+function toast(msg, icon='check-circle'){
+  const el = document.createElement('div');
+  el.className = 'toast bg-white border rounded-xl shadow-lg px-4 py-3 flex items-center gap-2 text-sm';
+  el.style.borderColor = 'var(--line)';
+  el.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4" style="color:var(--teal)"></i>${escapeHtml(msg)}`;
+  document.getElementById('toastRoot').appendChild(el);
+  lucide.createIcons();
+  setTimeout(()=>el.remove(), 3000);
+}
+
+function seedMeds(){
+  return [
+    { id:'MED-001', name:'Amoxicillin 500mg', category:'Antibiotic', stock:340, reorder:100, price:12, expiry:'2027-03-01' },
+    { id:'MED-002', name:'Paracetamol 500mg', category:'Analgesic', stock:18, reorder:150, price:4, expiry:'2026-09-20' },
+    { id:'MED-003', name:'Metformin 500mg', category:'Antidiabetic', stock:220, reorder:80, price:8, expiry:'2027-11-15' },
+    { id:'MED-004', name:'Cetirizine 10mg', category:'Antihistamine', stock:60, reorder:60, price:5, expiry:'2026-10-05' },
+    { id:'MED-005', name:'Insulin Glargine', category:'Hormone', stock:14, reorder:25, price:950, expiry:'2026-09-02' },
+    { id:'MED-006', name:'Omeprazole 20mg', category:'Antacid', stock:180, reorder:70, price:9, expiry:'2027-01-30' }
+  ];
+}
+function seedRx(){
+  return [
+    { id:'RX-001', patient:'Ayesha Raza', doctor:'Dr. Amina Farooq', date:'2026-08-14', items:[{med:'Amoxicillin 500mg', qty:14},{med:'Paracetamol 500mg', qty:10}], status:'Pending' },
+    { id:'RX-002', patient:'Hassan Iqbal', doctor:'Dr. Bilal Sheikh', date:'2026-08-15', items:[{med:'Metformin 500mg', qty:30}], status:'Pending' },
+    { id:'RX-003', patient:'Ayesha Raza', doctor:'Dr. Amina Farooq', date:'2026-08-01', items:[{med:'Cetirizine 10mg', qty:10}], status:'Dispensed' }
+  ];
+}
+function load(){
+  medicines = JSON.parse(localStorage.getItem(MEDS_KEY) || 'null') || seedMeds();
+  localStorage.setItem(MEDS_KEY, JSON.stringify(medicines));
+  prescriptions = JSON.parse(localStorage.getItem(RX_KEY) || 'null') || seedRx();
+  localStorage.setItem(RX_KEY, JSON.stringify(prescriptions));
+}
+function persist(){
+  localStorage.setItem(MEDS_KEY, JSON.stringify(medicines));
+  localStorage.setItem(RX_KEY, JSON.stringify(prescriptions));
+}
+
+function isLow(m){ return m.stock <= m.reorder; }
+function isExpiring(m){ return daysUntil(m.expiry) <= 60; }
+
+function renderStats(){
+  document.getElementById('statTotal').textContent = medicines.length;
+  document.getElementById('statLow').textContent = medicines.filter(isLow).length;
+  document.getElementById('statExpiring').textContent = medicines.filter(isExpiring).length;
+  document.getElementById('statRx').textContent = prescriptions.filter(r=>r.status==='Pending').length;
+}
+
+function renderMeds(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filter = document.getElementById('alertFilter').value;
+  const list = medicines.filter(m => {
+    if (q && !(m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q))) return false;
+    if (filter === 'low' && !isLow(m)) return false;
+    if (filter === 'expiring' && !isExpiring(m)) return false;
+    return true;
+  });
+  const tb = document.getElementById('medsTbody');
+  tb.innerHTML = list.map(m => {
+    const pct = Math.min(100, Math.round((m.stock / Math.max(m.reorder*3,1)) * 100));
+    const low = isLow(m), exp = isExpiring(m);
+    const barColor = low ? '#DC2626' : pct < 50 ? '#D97706' : '#2BB3A3';
+    let statusLabel = 'Healthy', statusColor = '#2BB3A3';
+    if (low && exp) { statusLabel = 'Low Stock + Expiring'; statusColor = '#DC2626'; }
+    else if (low) { statusLabel = 'Low Stock'; statusColor = '#DC2626'; }
+    else if (exp) { statusLabel = 'Expiring Soon'; statusColor = '#D97706'; }
+    return `
+    <tr class="border-b last:border-0" style="border-color:var(--line)">
+      <td class="px-5 py-3 font-medium">${escapeHtml(m.name)}</td>
+      <td class="px-5 py-3 text-slate-500">${escapeHtml(m.category)}</td>
+      <td class="px-5 py-3" style="min-width:140px">
+        <p class="font-mono text-xs mb-1">${m.stock} units</p>
+        <div class="stock-bar w-28"><div class="stock-fill" style="width:${pct}%; background:${barColor}"></div></div>
+      </td>
+      <td class="px-5 py-3 text-slate-500 text-xs">${m.expiry} ${exp?`<span class="${daysUntil(m.expiry)<0?'':'alert-ring'}" style="color:#D97706">●</span>`:''}</td>
+      <td class="px-5 py-3 font-mono">${money(m.price)}</td>
+      <td class="px-5 py-3"><span class="chip rounded-full px-2.5 py-1 inline-flex items-center gap-1.5"><span class="status-dot" style="background:${statusColor}"></span>${statusLabel}</span></td>
+      <td class="px-5 py-3 text-right">
+        <button class="editMedBtn btn-ghost p-1.5 rounded-full" data-id="${m.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+        <button class="restockBtn btn-ghost p-1.5 rounded-full" data-id="${m.id}" title="Restock +100"><i data-lucide="package-check" class="w-4 h-4"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();
+  tb.querySelectorAll('.editMedBtn').forEach(b => b.addEventListener('click', () => openMedModal(b.dataset.id)));
+  tb.querySelectorAll('.restockBtn').forEach(b => b.addEventListener('click', () => {
+    const m = medicines.find(x=>x.id===b.dataset.id); m.stock += 100;
+    persist(); renderAll(); toast(m.name + ' restocked (+100 units)');
+  }));
+}
+
+function renderRx(){
+  const list = document.getElementById('rxList');
+  list.innerHTML = prescriptions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(rx => `
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <p class="font-semibold text-sm">${escapeHtml(rx.patient)} <span class="text-slate-400 font-normal">· ${rx.date}</span></p>
+          <p class="text-xs text-slate-500">Prescribed by ${escapeHtml(rx.doctor)}</p>
+        </div>
+        <span class="chip rounded-full px-2.5 py-1 inline-flex items-center gap-1.5">
+          <span class="status-dot" style="background:${rx.status==='Dispensed'?'#2BB3A3':'#D97706'}"></span>${rx.status}
+        </span>
+      </div>
+      <ul class="text-sm text-slate-600 mb-3 space-y-0.5">
+        ${rx.items.map(i=>`<li>• ${escapeHtml(i.med)} — Qty ${i.qty}</li>`).join('')}
+      </ul>
+      ${rx.status==='Pending' ? `<button class="dispenseBtn btn-teal text-xs font-semibold px-4 py-2 rounded-full" data-id="${rx.id}">Mark Dispensed &amp; Deduct Stock</button>` : ''}
+    </div>`).join('');
+  list.querySelectorAll('.dispenseBtn').forEach(b => b.addEventListener('click', () => {
+    const rx = prescriptions.find(r => r.id === b.dataset.id);
+    rx.items.forEach(i => {
+      const m = medicines.find(x => x.name === i.med);
+      if (m) m.stock = Math.max(0, m.stock - i.qty);
+    });
+    rx.status = 'Dispensed';
+    persist(); renderAll(); toast('Prescription dispensed — stock updated');
+  }));
+}
+
+function renderAll(){ renderStats(); renderMeds(); renderRx(); }
+
+document.getElementById('searchInput').addEventListener('input', renderMeds);
+document.getElementById('alertFilter').addEventListener('change', renderMeds);
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['inventory','prescriptions'].forEach(t => document.getElementById('tab-'+t).classList.toggle('hidden', t !== btn.dataset.tab));
+  });
+});
+
+const medModal = document.getElementById('medModal');
+function openMedModal(id){
+  document.getElementById('medForm').reset();
+  if (id){
+    const m = medicines.find(x=>x.id===id);
+    document.getElementById('medModalTitle').textContent = 'Edit Medicine';
+    document.getElementById('medId').value = m.id;
+    document.getElementById('medName').value = m.name;
+    document.getElementById('medCategory').value = m.category;
+    document.getElementById('medStock').value = m.stock;
+    document.getElementById('medReorder').value = m.reorder;
+    document.getElementById('medPrice').value = m.price;
+    document.getElementById('medExpiry').value = m.expiry;
+  } else {
+    document.getElementById('medModalTitle').textContent = 'Add Medicine';
+    document.getElementById('medId').value = '';
+  }
+  medModal.classList.remove('hidden'); medModal.classList.add('flex');
+}
+document.getElementById('openAddMedBtn').addEventListener('click', () => openMedModal(null));
+document.querySelectorAll('.medModalClose').forEach(b => b.addEventListener('click', () => { medModal.classList.add('hidden'); medModal.classList.remove('flex'); }));
+document.getElementById('medForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('medId').value;
+  const payload = {
+    id: id || 'MED-' + String(medicines.length+1).padStart(3,'0'),
+    name: document.getElementById('medName').value,
+    category: document.getElementById('medCategory').value,
+    stock: Number(document.getElementById('medStock').value),
+    reorder: Number(document.getElementById('medReorder').value),
+    price: Number(document.getElementById('medPrice').value),
+    expiry: document.getElementById('medExpiry').value
+  };
+  if (id) medicines = medicines.map(m => m.id===id ? payload : m);
+  else medicines.push(payload);
+  persist(); renderAll();
+  medModal.classList.add('hidden'); medModal.classList.remove('flex');
+  toast(id ? 'Medicine updated' : 'Medicine added to inventory');
+});
+
+load();
+renderAll();
+</script>
+</body>
+</html>

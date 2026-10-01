@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — SSGC Hospital Management System</title>
+  <meta name="description"
+    content="Secure sign-in portal for SSGC Hospital Management System. Role-based access for admins, doctors, nurses, and patients." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --navy: #0A1628;
+      --navy2: #0F2240;
+      --teal: #14B8A6;
+      --teal2: #0D9488;
+      --gold: #F59E0B;
+      --white: #FFFFFF;
+      --slate50: #F8FAFC;
+      --slate100: #F1F5F9;
+      --slate200: #E2E8F0;
+      --slate400: #94A3B8;
+      --slate500: #64748B;
+      --slate700: #334155;
+      --slate900: #0F172A;
+      --red: #EF4444;
+      --green: #10B981;
+      --radius: 14px;
+      --shadow-lg: 0 20px 60px rgba(0, 0, 0, .18);
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--slate100);
+      color: var(--slate900);
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+    }
+
+    /* ─── LAYOUT ─────────────────────────────── */
+    .page {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* ─── LEFT PANEL ──────────────────────────── */
+    .left-panel {
+      width: 45%;
+      background: linear-gradient(145deg, #0A1628 0%, #0F2A50 55%, #0A2A3E 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 44px 52px;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: -120px;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle, rgba(20, 184, 166, .22) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      right: -80px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(245, 158, 11, .12) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* floating blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: .18;
+      pointer-events: none;
+    }
+
+    .blob-1 {
+      width: 300px;
+      height: 300px;
+      background: #14B8A6;
+      top: 15%;
+      right: -60px;
+      animation: drift 9s ease-in-out infinite alternate;
+    }
+
+    .blob-2 {
+      width: 220px;
+      height: 220px;
+      background: #3B82F6;
+      bottom: 25%;
+      left: -50px;
+      animation: drift 12s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes drift {
+      from {
+        transform: translate(0, 0) scale(1);
+      }
+
+      to {
+        transform: translate(30px, 20px) scale(1.1);
+      }
+    }
+
+    /* decorative grid */
+    .grid-deco {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .left-top {
+      position: relative;
+      z-index: 2;
+    }
+
+    .left-mid {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .left-bot {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* logo */
+    .logo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--teal), var(--teal2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(20, 184, 166, .4);
+    }
+
+    .logo-text {
+      color: white;
+    }
+
+    .logo-text .name {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -.3px;
+    }
+
+    .logo-text .sub {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .5);
+      margin-top: 3px;
+    }
+
+    /* headline */
+    .panel-headline {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(28px, 3.5vw, 42px);
+      font-weight: 700;
+      color: white;
+      line-height: 1.2;
+      margin-bottom: 18px;
+    }
+
+    .panel-headline span {
+      color: var(--teal);
+    }
+
+    .panel-sub {
+      font-size: 14px;
+      color: rgba(255, 255, 255, .55);
+      line-height: 1.8;
+      max-width: 380px;
+    }
+
+    /* stats row */
+    .stats-row {
+      display: flex;
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .stat-chip {
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .1);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      transition: background .25s;
+    }
+
+    .stat-chip:hover {
+      background: rgba(255, 255, 255, .1);
+    }
+
+    .stat-num {
+      font-size: 22px;
+      font-weight: 800;
+      color: white;
+    }
+
+    .stat-lbl {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .45);
+    }
+
+    /* feature pills */
+    .feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .feature-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, .7);
+    }
+
+    .feature-pill i {
+      color: var(--teal);
+    }
+
+    /* ─── RIGHT PANEL ─────────────────────────── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      background: var(--slate50);
+      position: relative;
+    }
+
+    .form-card {
+      width: 100%;
+      max-width: 440px;
+      background: white;
+      border-radius: 24px;
+      padding: 44px 40px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--slate200);
+      animation: slideUp .5s cubic-bezier(.22, .68, 0, 1.2) both;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(90deg, rgba(20, 184, 166, .08), rgba(20, 184, 166, .04));
+      border: 1px solid rgba(20, 184, 166, .25);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--teal2);
+      letter-spacing: .04em;
+      margin-bottom: 20px;
+    }
+
+    .card-badge span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: inline-block;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .3;
+      }
+    }
+
+    .card-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--slate900);
+      letter-spacing: -.5px;
+      margin-bottom: 4px;
+    }
+
+    .card-sub {
+      font-size: 13.5px;
+      color: var(--slate500);
+      margin-bottom: 28px;
+    }
+
+    /* ─── ROLE SELECTOR ───────────────────────── */
+    .role-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--slate400);
+      margin-bottom: 10px;
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .role-btn {
+      border: 2px solid var(--slate200);
+      border-radius: 14px;
+      background: white;
+      padding: 12px 6px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--slate500);
+      cursor: pointer;
+      transition: all .22s ease;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: .02em;
+    }
+
+    .role-btn:hover {
+      border-color: var(--teal);
+      background: rgba(20, 184, 166, .04);
+      color: var(--teal2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(20, 184, 166, .15);
+    }
+
+    .role-btn.active {
+      background: linear-gradient(160deg, rgba(20, 184, 166, .08), rgba(20, 184, 166, .03));
+      color: var(--teal2);
+      box-shadow: 0 6px 20px rgba(20, 184, 166, .2);
+    }
+
+    .role-btn.active::after {
+      content: '✓';
+      position: absolute;
+      top: 5px;
+      right: 7px;
+      font-size: 8px;
+      font-weight: 800;
+      background: var(--teal);
+      color: white;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 15px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(20, 184, 166, .4);
+    }
+
+    /* role avatar photo */
+    .role-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2.5px solid var(--slate200);
+      transition: border-color .22s, box-shadow .22s;
+      flex-shrink: 0;
+      background: var(--slate100);
+    }
+
+    .role-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .role-btn:hover .role-avatar {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, .18);
+    }
+
+    .role-btn.active .role-avatar {
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, .3);
+    }
+
+    /* ─── FORM FIELDS ─────────────────────────── */
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate700);
+      margin-bottom: 7px;
+      letter-spacing: .02em;
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--slate400);
+      pointer-events: none;
+      width: 16px;
+      height: 16px;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 12px 14px 12px 42px;
+      border: 1.5px solid var(--slate200);
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--slate900);
+      background: var(--slate50);
+      transition: all .2s ease;
+      outline: none;
+    }
+
+    .field-input:focus {
+      border-color: var(--teal);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(20, 184, 166, .1);
+    }
+
+    .field-input::placeholder {
+      color: var(--slate400);
+    }
+
+    /* password toggle */
+    .pwd-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--slate400);
+      padding: 2px;
+      transition: color .2s;
+    }
+
+    .pwd-toggle:hover {
+      color: var(--slate700);
+    }
+
+    /* ─── ERROR MSG ───────────────────────────── */
+    .login-error {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, .06);
+      border: 1px solid rgba(239, 68, 68, .2);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      color: var(--red);
+      margin-bottom: 14px;
+    }
+
+    .login-error.show {
+      display: flex;
+    }
+
+    /* ─── SUBMIT BUTTON ───────────────────────── */
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0F4C81, #1A6DB5);
+      color: white;
+      font-size: 14.5px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all .25s ease;
+      box-shadow: 0 4px 20px rgba(15, 76, 129, .35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: .02em;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(15, 76, 129, .45);
+      background: linear-gradient(135deg, #0c3d68, #145a9a);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    /* ─── DEMO CREDENTIALS ────────────────────── */
+    .demo-box {
+      margin-top: 20px;
+      border: 1.5px dashed var(--slate200);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--slate50);
+    }
+
+    .demo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .demo-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--slate500);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .demo-creds {
+      font-size: 12.5px;
+      font-family: 'Courier New', monospace;
+      color: var(--slate700);
+      background: white;
+      border: 1px solid var(--slate200);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      letter-spacing: .01em;
+    }
+
+    .btn-autofill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 1.5px solid var(--teal);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--teal2);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all .2s;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-autofill:hover {
+      background: var(--teal);
+      color: white;
+    }
+
+    /* ─── DIVIDER ─────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 0;
+    }
+
+    .divider hr {
+      flex: 1;
+      border: none;
+      border-top: 1px solid var(--slate200);
+    }
+
+    .divider span {
+      font-size: 11px;
+      color: var(--slate400);
+      font-weight: 500;
+    }
+
+    .disclaimer {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--slate400);
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    /* ─── SHAKE ANIMATION ─────────────────────── */
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20% {
+        transform: translateX(-8px);
+      }
+
+      40% {
+        transform: translateX(8px);
+      }
+
+      60% {
+        transform: translateX(-5px);
+      }
+
+      80% {
+        transform: translateX(5px);
+      }
+    }
+
+    .shake {
+      animation: shake .4s ease;
+    }
+
+    /* ─── TOAST ───────────────────────────────── */
+    #toastRoot {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--slate900);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .25);
+      animation: toastIn .3s cubic-bezier(.22, .68, 0, 1.2), toastOut .3s ease 2.7s forwards;
+      min-width: 220px;
+    }
+
+    .toast .t-icon {
+      color: var(--teal);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes toastOut {
+      to {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    }
+
+    /* ─── RESPONSIVE ──────────────────────────── */
+    @media (max-width: 900px) {
+      .left-panel {
+        display: none;
+      }
+
+      .right-panel {
+        background: linear-gradient(145deg, #0A1628 0%, #0F2A50 100%);
+      }
+
+      .form-card {
+        box-shadow: 0 30px 80px rgba(0, 0, 0, .35);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .form-card {
+        padding: 32px 24px;
+        border-radius: 20px;
+      }
+
+      .right-panel {
+        padding: 20px 16px;
+        align-items: flex-start;
+        padding-top: 40px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- ═══ LEFT PANEL ═══ -->
+    <aside class="left-panel">
+      <div class="grid-deco"></div>
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+
+      <!-- Logo -->
+      <div class="left-top">
+        <a href="home.html" class="logo-link">
+          <div class="logo-icon">
+            <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
+              <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="white" stroke-width="2.6" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="logo-text">
+            <div class="name">SSGC Hospital</div>
+            <div class="sub">Care Management System</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Main copy -->
+      <div class="left-mid">
+        <h1 class="panel-headline">
+          One secure sign-in<br>for every <span>role</span> in<br>the hospital.
+        </h1>
+        <p class="panel-sub">
+          Admins, doctors, nurses, receptionists and patients each get a tailored dashboard — appointments, records,
+          billing, pharmacy and diagnostics, all in one place.
+        </p>
+
+        <div class="stats-row" style="margin-top:40px;">
+          <div class="stat-chip">
+            <span class="stat-num">6</span>
+            <span class="stat-lbl">Role Types</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-num">12</span>
+            <span class="stat-lbl">Modules</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-num">24/7</span>
+            <span class="stat-lbl">Access</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature pills -->
+      <div class="left-bot">
+        <div class="feature-pills">
+          <div class="feature-pill">
+            <i data-lucide="shield-check" style="width:13px;height:13px;"></i>
+            Role-based access
+          </div>
+          <div class="feature-pill">
+            <i data-lucide="scroll-text" style="width:13px;height:13px;"></i>
+            Audit logging
+          </div>
+          <div class="feature-pill">
+            <i data-lucide="lock" style="width:13px;height:13px;"></i>
+            Encrypted sessions
+          </div>
+          <div class="feature-pill">
+            <i data-lucide="activity" style="width:13px;height:13px;"></i>
+            Real-time data
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ RIGHT PANEL ═══ -->
+    <main class="right-panel">
+      <div class="form-card">
+
+        <div class="card-badge">
+          <span></span> Secure Portal
+        </div>
+
+        <h2 class="card-title">Welcome back</h2>
+        <p class="card-sub">Select your role and sign in to continue.</p>
+
+        <!-- Role Selector -->
+        <p class="role-label">Select role</p>
+        <div class="role-grid" id="roleGrid"></div>
+
+        <!-- Login Form -->
+        <form id="loginForm" novalidate>
+
+          <div class="field-group">
+            <label class="field-label" for="email">Email address</label>
+            <div class="field-wrap">
+              <i data-lucide="mail" class="field-icon"></i>
+              <input id="email" type="email" class="field-input" placeholder="you@ssgc.hospital" autocomplete="email"
+                required />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="password">Password</label>
+            <div class="field-wrap">
+              <i data-lucide="lock" class="field-icon"></i>
+              <input id="password" type="password" class="field-input" placeholder="••••••••"
+                autocomplete="current-password" required />
+              <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Toggle password">
+                <i data-lucide="eye" style="width:16px;height:16px;" id="pwdIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Error message -->
+          <div class="login-error" id="loginError">
+            <i data-lucide="alert-circle" style="width:15px;height:15px;flex-shrink:0;"></i>
+            Incorrect email or password for this role.
+          </div>
+
+          <button type="submit" class="btn-submit" id="signInBtn">
+            <i data-lucide="log-in" style="width:16px;height:16px;"></i>
+            Sign In
+          </button>
+        </form>
+
+        <!-- Demo Credentials -->
+        <div class="demo-box" id="demoBox">
+          <div class="demo-header">
+            <span class="demo-title">
+              <i data-lucide="info" style="width:12px;height:12px;color:#14B8A6;"></i>
+              Demo credentials
+            </span>
+            <span style="font-size:10px;color:#94A3B8;">Academic project</span>
+          </div>
+          <div class="demo-creds" id="demoHint"></div>
+          <button type="button" class="btn-autofill" id="fillDemoBtn">
+            <i data-lucide="zap" style="width:13px;height:13px;"></i>
+            Autofill &amp; sign in as this role
+          </button>
+        </div>
+
+        <div class="divider">
+          <hr />
+          <span>demo only</span>
+          <hr />
+        </div>
+        <p class="disclaimer">Passwords are compared client-side for this offline demo. A production build would use
+          hashed credentials over HTTPS with JWT / OAuth 2.0.</p>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="toastRoot"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Init Lucide icons
+      if (window.lucide) lucide.createIcons();
+
+      /* ── DATA ── */
+      const USERS_KEY = 'ssgc_users_v1';
+      const SESSION_KEY = 'ssgc_session_v1';
+
+      const ROLES = [
+        { id: 'Admin', icon: 'shield', label: 'Admin', color: '#6366F1', img: 'images/role_admin.jpg' },
+        { id: 'Doctor', icon: 'stethoscope', label: 'Doctor', color: '#0EA5E9', img: 'images/role_doctor.jpg' },
+        { id: 'Nurse', icon: 'heart-pulse', label: 'Nurse', color: '#EC4899', img: 'images/role_nurse.jpg' },
+        { id: 'Receptionist', icon: 'phone', label: 'Reception', color: '#F59E0B', img: 'images/role_receptionist.jpg' },
+        { id: 'Pharmacist', icon: 'pill', label: 'Pharmacy', color: '#10B981', img: 'images/role_pharmacist.jpg' },
+        { id: 'Patient', icon: 'user', label: 'Patient', color: '#8B5CF6', img: 'images/role_patient.jpg' },
+      ];
+
+      function seedUsers() {
+        return [
+          { role: 'Admin', name: 'Hira Baig', email: 'admin@ssgc.hospital', password: 'admin123' },
+          { role: 'Doctor', name: 'Dr. Amina Farooq', email: 'doctor@ssgc.hospital', password: 'doctor123' },
+          { role: 'Nurse', name: 'Nadia Hussain', email: 'nurse@ssgc.hospital', password: 'nurse123' },
+          { role: 'Receptionist', name: 'Farhan Sheikh', email: 'reception@ssgc.hospital', password: 'reception123' },
+          { role: 'Pharmacist', name: 'Zainab Tariq', email: 'pharmacy@ssgc.hospital', password: 'pharmacy123' },
+          { role: 'Patient', name: 'Ayesha Raza', email: 'patient@ssgc.hospital', password: 'patient123' },
+        ];
+      }
+
+      let users = JSON.parse(localStorage.getItem(USERS_KEY) || 'null') || seedUsers();
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+      let selectedRole = 'Admin';
+      const roleGrid = document.getElementById('roleGrid');
+
+      /* ── RENDER ROLES ── */
+      function renderRoles() {
+        const isActive = (r) => r.id === selectedRole;
+        roleGrid.innerHTML = ROLES.map(r => `
+      <button type="button" data-role="${r.id}"
+        class="role-btn ${isActive(r) ? 'active' : ''}"
+        style="${isActive(r) ? `border-color:${r.color};` : ''}">
+        <div class="role-avatar" style="${isActive(r) ? `border-color:${r.color};` : ''}">
+          <img src="${r.img}" alt="${r.label}" loading="lazy" />
+        </div>
+        <span style="${isActive(r) ? `color:${r.color};` : ''}">${r.label}</span>
+      </button>`).join('');
+        roleGrid.querySelectorAll('.role-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            selectedRole = btn.dataset.role;
+            renderRoles();
+            updateHint();
+            clearError();
+          });
+        });
+      }
+
+      /* ── UPDATE DEMO HINT ── */
+      function updateHint() {
+        const u = users.find(x => x.role === selectedRole);
+        if (u) document.getElementById('demoHint').textContent = `${u.email}  /  ${u.password}`;
+      }
+
+      /* ── ERROR HELPERS ── */
+      function showError() {
+        const el = document.getElementById('loginError');
+        el.classList.add('show');
+        if (window.lucide) lucide.createIcons();
+      }
+      function clearError() {
+        document.getElementById('loginError').classList.remove('show');
+      }
+
+      /* ── PASSWORD TOGGLE ── */
+      const pwdInput = document.getElementById('password');
+      const pwdToggle = document.getElementById('pwdToggle');
+      let pwdVisible = false;
+      pwdToggle.addEventListener('click', () => {
+        pwdVisible = !pwdVisible;
+        pwdInput.type = pwdVisible ? 'text' : 'password';
+        document.getElementById('pwdIcon').setAttribute('data-lucide', pwdVisible ? 'eye-off' : 'eye');
+        if (window.lucide) lucide.createIcons();
+      });
+
+      /* ── AUTOFILL ── */
+      document.getElementById('fillDemoBtn').addEventListener('click', () => {
+        const u = users.find(x => x.role === selectedRole);
+        if (!u) return;
+        document.getElementById('email').value = u.email;
+        document.getElementById('password').value = u.password;
+        clearError();
+        document.getElementById('loginForm').requestSubmit();
+      });
+
+      /* ── TOAST ── */
+      function toast(msg, type = 'success') {
+        const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.innerHTML = `<i data-lucide="${icon}" class="t-icon" style="width:18px;height:18px;"></i>${msg}`;
+        document.getElementById('toastRoot').appendChild(el);
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => el.remove(), 3200);
+      }
+
+      /* ── SUBMIT ── */
+      document.getElementById('loginForm').addEventListener('submit', e => {
+        e.preventDefault();
+        clearError();
+
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const password = document.getElementById('password').value;
+        const match = users.find(u =>
+          u.role === selectedRole &&
+          u.email.toLowerCase() === email &&
+          u.password === password
+        );
+
+        if (!match) {
+          showError();
+          const form = document.getElementById('loginForm');
+          form.classList.add('shake');
+          setTimeout(() => form.classList.remove('shake'), 450);
+          return;
+        }
+
+        // Save session
+        const session = { role: match.role, name: match.name, email: match.email, loginAt: new Date().toISOString() };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+        // Audit log
+        const AUDIT_KEY = 'ssgc_audit_v1';
+        const audit = JSON.parse(localStorage.getItem(AUDIT_KEY) || '[]');
+        audit.unshift({ who: match.name, role: match.role, action: 'Logged in', at: new Date().toLocaleString() });
+        localStorage.setItem(AUDIT_KEY, JSON.stringify(audit.slice(0, 200)));
+
+        // Button loading state
+        const btn = document.getElementById('signInBtn');
+        btn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px;animation:spin .8s linear infinite;"></i> Signing in…';
+        if (window.lucide) lucide.createIcons();
+        btn.disabled = true;
+
+        toast(`Welcome back, ${match.name.split(' ')[0]}! 👋`);
+        const ROLE_HOME = {
+          Admin: 'dashboard.html', Doctor: 'dashboard.html', Nurse: 'dashboard.html',
+          Receptionist: 'appointment-management.html',
+          Pharmacist: 'pharmacy.html',
+          Patient: 'appointment-management.html',
+        };
+        setTimeout(() => { window.location.href = ROLE_HOME[match.role] || 'dashboard.html'; }, 900);
+      });
+
+      /* ── INIT ── */
+      renderRoles();
+      updateHint();
+
+      // Add spin keyframe dynamically
+      const style = document.createElement('style');
+      style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+      document.head.appendChild(style);
+
+    }); // end DOMContentLoaded
+  </script>
+</body>
+
+</html>

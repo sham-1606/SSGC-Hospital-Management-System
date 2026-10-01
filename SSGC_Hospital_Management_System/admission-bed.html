@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admission &amp; Bed Management — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{ --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3; --bg:#FFFFFF; --bg-soft:#F8FAFC; --accent:#2563EB; --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706; --violet:#7C3AED; }
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  .btn-primary{background:var(--primary); color:white; transition:all .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(43,179,163,0.15);}
+  .modal-backdrop{background:rgba(11,42,67,0.55); backdrop-filter:blur(2px);}
+  .modal-panel{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+  .toast{animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+  .bed{width:100%; aspect-ratio:1.3; border-radius:10px; border:1.5px solid var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; transition:all .15s ease;}
+  .bed:hover{transform:translateY(-2px);}
+  .bed.free{background:#F0FDF9; border-color:#99E3D6;}
+  .bed.occ{background:#FEF2F2; border-color:#FCA5A5;}
+  .status-dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+    <a href="home.html" class="flex items-center gap-2.5">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Admission &amp; Bed Management</p>
+      </div>
+    </a>
+    <div class="flex items-center gap-2 md:gap-3">
+      <a href="dashboard.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</a>
+      <a href="firebase.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="database" class="w-4 h-4 text-amber-500"></i> Firebase</a>
+      <button id="openAdmitBtn" class="btn-primary text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2"><i data-lucide="bed" class="w-4 h-4"></i> Admit Patient</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Total Beds</p>
+      <p class="font-mono text-2xl font-semibold" id="statTotal" style="color:var(--primary)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Occupied</p>
+      <p class="font-mono text-2xl font-semibold" id="statOcc" style="color:var(--emergency)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Available</p>
+      <p class="font-mono text-2xl font-semibold" id="statFree" style="color:var(--teal)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Occupancy Rate</p>
+      <p class="font-mono text-2xl font-semibold" id="statRate" style="color:var(--accent)">0%</p>
+    </div>
+  </div>
+
+  <!-- WARDS -->
+  <div id="wardsWrap" class="space-y-6 mb-10"></div>
+
+  <!-- PREDICTIVE OCCUPANCY -->
+  <div class="bg-white rounded-2xl border p-6" style="border-color:var(--line)">
+    <div class="flex items-center justify-between mb-1">
+      <p class="font-display text-lg font-semibold">Predicted Bed Occupancy — Next 7 Days</p>
+      <span class="chip rounded-full px-3 py-1.5 text-xs font-medium flex items-center gap-1.5" style="color:var(--violet)"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i>Simulated forecast</span>
+    </div>
+    <p class="text-xs text-slate-500 mb-6">Time-series trend projected from recent admission/discharge activity — for demo purposes only, not a trained ML model.</p>
+    <svg id="forecastChart" viewBox="0 0 700 220" class="w-full h-56"></svg>
+  </div>
+</main>
+
+<!-- ADMIT MODAL -->
+<div id="admitModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold">Admit Patient</p>
+      <button class="admitModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="admitForm" class="space-y-3">
+      <div><label class="text-xs font-medium text-slate-600">Patient</label>
+        <select id="aPatient" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"></select></div>
+      <div><label class="text-xs font-medium text-slate-600">Bed</label>
+        <select id="aBed" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"></select></div>
+      <div><label class="text-xs font-medium text-slate-600">Admission Type</label>
+        <select id="aType" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)">
+          <option>IPD (Inpatient)</option><option>OPD Observation</option>
+        </select></div>
+      <div><label class="text-xs font-medium text-slate-600">Reason for Admission</label>
+        <textarea id="aReason" rows="2" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none" style="border-color:var(--line)"></textarea></div>
+      <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm mt-2">Confirm Admission</button>
+    </form>
+  </div>
+</div>
+
+<!-- BED / DISCHARGE MODAL -->
+<div id="bedModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold">Bed Details</p>
+      <button class="bedModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div id="bedDetails" class="text-sm"></div>
+  </div>
+</div>
+
+<!-- DISCHARGE SUMMARY MODAL -->
+<div id="dischargeModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold">Discharge Summary</p>
+      <button class="dischargeModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="dischargeForm" class="space-y-3">
+      <input type="hidden" id="dBedId"/>
+      <div><label class="text-xs font-medium text-slate-600">Final Diagnosis</label>
+        <input id="dDiagnosis" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Treatment Given</label>
+        <textarea id="dTreatment" rows="2" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none" style="border-color:var(--line)"></textarea></div>
+      <div><label class="text-xs font-medium text-slate-600">Discharge Instructions</label>
+        <textarea id="dInstructions" rows="2" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none" style="border-color:var(--line)"></textarea></div>
+      <div><label class="text-xs font-medium text-slate-600">Follow-up Date</label>
+        <input id="dFollowup" type="date" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm mt-2">Generate Summary &amp; Free Bed</button>
+    </form>
+  </div>
+</div>
+
+<div id="toastRoot" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2"></div>
+
+<script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Doctor','Nurse','Receptionist'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+
+document.addEventListener('DOMContentLoaded', () => window.lucide && lucide.createIcons());
+
+const PATIENTS_KEY = 'ssgc_patients_v1';
+const BEDS_KEY = 'ssgc_beds_v1';
+let patients = [], beds = [];
+const WARDS = ['General Ward','ICU','Pediatric Ward','Maternity Ward'];
+
+function pad2(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg, icon='check-circle'){
+  const el = document.createElement('div');
+  el.className = 'toast bg-white border rounded-xl shadow-lg px-4 py-3 flex items-center gap-2 text-sm';
+  el.style.borderColor = 'var(--line)';
+  el.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4" style="color:var(--teal)"></i>${escapeHtml(msg)}`;
+  document.getElementById('toastRoot').appendChild(el);
+  lucide.createIcons();
+  setTimeout(()=>el.remove(), 3000);
+}
+
+function loadPatients(){
+  patients = JSON.parse(localStorage.getItem(PATIENTS_KEY) || '[]');
+  if (!patients.length){ patients = [{id:'SSGC-2026-00001',name:'Ayesha Raza'},{id:'SSGC-2026-00002',name:'Hassan Iqbal'}]; localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients)); }
+}
+function seedBeds(){
+  const out = [];
+  const counts = { 'General Ward':10, 'ICU':6, 'Pediatric Ward':6, 'Maternity Ward':6 };
+  Object.entries(counts).forEach(([ward, n]) => {
+    for (let i=1;i<=n;i++){
+      out.push({ id:`${ward.slice(0,3).toUpperCase()}-${pad2(i)}`, ward, number:i, status:'Free', patient:null, admittedDate:null, type:null, reason:null });
+    }
+  });
+  // pre-occupy a few for realism
+  [0,2,10,11,16].forEach((idx,i) => {
+    if (out[idx]){
+      out[idx].status = 'Occupied';
+      out[idx].patient = i%2===0 ? 'Ayesha Raza' : 'Hassan Iqbal';
+      out[idx].admittedDate = '2026-08-1' + (2+i);
+      out[idx].type = 'IPD (Inpatient)';
+      out[idx].reason = 'Under observation';
+    }
+  });
+  return out;
+}
+function load(){
+  loadPatients();
+  beds = JSON.parse(localStorage.getItem(BEDS_KEY) || 'null') || seedBeds();
+  localStorage.setItem(BEDS_KEY, JSON.stringify(beds));
+}
+function persist(){ localStorage.setItem(BEDS_KEY, JSON.stringify(beds)); }
+
+function renderStats(){
+  const occ = beds.filter(b=>b.status==='Occupied').length;
+  document.getElementById('statTotal').textContent = beds.length;
+  document.getElementById('statOcc').textContent = occ;
+  document.getElementById('statFree').textContent = beds.length - occ;
+  document.getElementById('statRate').textContent = Math.round((occ/beds.length)*100) + '%';
+}
+
+function renderWards(){
+  const wrap = document.getElementById('wardsWrap');
+  wrap.innerHTML = WARDS.map(ward => {
+    const wardBeds = beds.filter(b => b.ward === ward);
+    const occ = wardBeds.filter(b=>b.status==='Occupied').length;
+    return `
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-4">
+        <p class="font-display font-semibold">${ward}</p>
+        <span class="chip rounded-full px-3 py-1 text-xs font-medium">${occ}/${wardBeds.length} occupied</span>
+      </div>
+      <div class="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+        ${wardBeds.map(b => `
+          <div class="bed ${b.status==='Free'?'free':'occ'} viewBedBtn" data-id="${b.id}">
+            <i data-lucide="bed-single" class="w-4 h-4" style="color:${b.status==='Free'?'#239484':'#DC2626'}"></i>
+            <span class="text-[10px] font-mono font-semibold">${b.id.split('-')[1]}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+  wrap.querySelectorAll('.viewBedBtn').forEach(b => b.addEventListener('click', () => openBedDetails(b.dataset.id)));
+}
+
+function renderForecast(){
+  const occ = beds.filter(b=>b.status==='Occupied').length;
+  const total = beds.length;
+  // naive simulated trend: oscillate around current occupancy with slight upward drift
+  const days = [];
+  const today = new Date();
+  let base = occ;
+  for (let i=0;i<7;i++){
+    const d = new Date(today); d.setDate(d.getDate()+i);
+    const drift = Math.sin(i*0.9) * 2.2 + i*0.4;
+    const predicted = Math.max(0, Math.min(total, Math.round(base + drift)));
+    days.push({ label: d.toLocaleDateString('en-US',{weekday:'short'}), value: predicted });
+  }
+  const svg = document.getElementById('forecastChart');
+  const W=700,H=220,padL=36,padB=28,padT=14,chartW=W-padL-16,chartH=H-padB-padT;
+  const maxV = total;
+  const barW = chartW/days.length*0.55;
+  const gap = chartW/days.length;
+  let bars = '', labels = '', line = '';
+  const pts = days.map((d,i) => {
+    const x = padL + gap*i + gap/2;
+    const y = padT + chartH - (d.value/maxV)*chartH;
+    return [x,y];
+  });
+  days.forEach((d,i) => {
+    const x = padL + gap*i + (gap-barW)/2;
+    const h = (d.value/maxV)*chartH;
+    const y = padT + chartH - h;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="6" fill="#DBEAFE"/>`;
+    labels += `<text x="${x+barW/2}" y="${H-8}" font-size="11" fill="#64748B" text-anchor="middle" font-family="Inter">${d.label}</text>`;
+    labels += `<text x="${x+barW/2}" y="${y-8}" font-size="11" fill="#0F4C81" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600">${d.value}</text>`;
+  });
+  const pathD = pts.map((p,i) => (i===0?'M':'L')+p[0]+' '+p[1]).join(' ');
+  line = `<path d="${pathD}" fill="none" stroke="#2BB3A3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` +
+    pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#2BB3A3"/>`).join('');
+  svg.innerHTML = `<line x1="${padL}" y1="${padT+chartH}" x2="${W-16}" y2="${padT+chartH}" stroke="#E2E8F0"/>${bars}${line}${labels}`;
+}
+
+function renderAll(){ renderStats(); renderWards(); renderForecast(); }
+
+/* ---- admit modal ---- */
+const admitModal = document.getElementById('admitModal');
+document.getElementById('openAdmitBtn').addEventListener('click', () => {
+  document.getElementById('admitForm').reset();
+  document.getElementById('aPatient').innerHTML = patients.map(p=>`<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+  const free = beds.filter(b=>b.status==='Free');
+  document.getElementById('aBed').innerHTML = free.map(b=>`<option value="${b.id}">${b.id} — ${b.ward}</option>`).join('') || '<option disabled>No beds available</option>';
+  admitModal.classList.remove('hidden'); admitModal.classList.add('flex');
+});
+document.querySelectorAll('.admitModalClose').forEach(b => b.addEventListener('click', () => { admitModal.classList.add('hidden'); admitModal.classList.remove('flex'); }));
+document.getElementById('admitForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const bed = beds.find(b => b.id === document.getElementById('aBed').value);
+  if (!bed) return;
+  bed.status = 'Occupied';
+  bed.patient = document.getElementById('aPatient').value;
+  bed.admittedDate = todayStr();
+  bed.type = document.getElementById('aType').value;
+  bed.reason = document.getElementById('aReason').value;
+  persist(); renderAll();
+  admitModal.classList.add('hidden'); admitModal.classList.remove('flex');
+  toast(bed.patient + ' admitted to ' + bed.id);
+});
+
+/* ---- bed details / discharge ---- */
+const bedModal = document.getElementById('bedModal');
+function openBedDetails(id){
+  const b = beds.find(x=>x.id===id);
+  document.getElementById('bedDetails').innerHTML = b.status==='Free' ? `
+    <div class="text-center py-6">
+      <i data-lucide="bed-single" class="w-8 h-8 mx-auto mb-2" style="color:var(--teal)"></i>
+      <p class="font-semibold">${b.id} · ${b.ward}</p>
+      <p class="text-xs text-slate-400 mt-1">This bed is currently available.</p>
+    </div>` : `
+    <div class="space-y-2">
+      <p><span class="text-slate-500">Bed:</span> <span class="font-medium">${b.id} · ${b.ward}</span></p>
+      <p><span class="text-slate-500">Patient:</span> <span class="font-medium">${escapeHtml(b.patient)}</span></p>
+      <p><span class="text-slate-500">Type:</span> ${escapeHtml(b.type)}</p>
+      <p><span class="text-slate-500">Admitted:</span> ${b.admittedDate}</p>
+      <p><span class="text-slate-500">Reason:</span> ${escapeHtml(b.reason||'—')}</p>
+      <button class="dischargeBtn w-full mt-3 rounded-xl py-2.5 font-semibold text-sm" style="background:var(--emergency); color:white" data-id="${b.id}">Discharge Patient</button>
+    </div>`;
+  lucide.createIcons();
+  bedModal.classList.remove('hidden'); bedModal.classList.add('flex');
+  bedModal.querySelectorAll('.dischargeBtn').forEach(btn => btn.addEventListener('click', () => {
+    bedModal.classList.add('hidden'); bedModal.classList.remove('flex');
+    openDischargeModal(btn.dataset.id);
+  }));
+}
+document.querySelectorAll('.bedModalClose').forEach(b => b.addEventListener('click', () => { bedModal.classList.add('hidden'); bedModal.classList.remove('flex'); }));
+
+const dischargeModal = document.getElementById('dischargeModal');
+function openDischargeModal(id){
+  document.getElementById('dischargeForm').reset();
+  document.getElementById('dBedId').value = id;
+  dischargeModal.classList.remove('hidden'); dischargeModal.classList.add('flex');
+}
+document.querySelectorAll('.dischargeModalClose').forEach(b => b.addEventListener('click', () => { dischargeModal.classList.add('hidden'); dischargeModal.classList.remove('flex'); }));
+document.getElementById('dischargeForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const b = beds.find(x => x.id === document.getElementById('dBedId').value);
+  const summary = {
+    patient: b.patient, bed: b.id, diagnosis: document.getElementById('dDiagnosis').value,
+    treatment: document.getElementById('dTreatment').value, instructions: document.getElementById('dInstructions').value,
+    followup: document.getElementById('dFollowup').value, date: todayStr()
+  };
+  b.status = 'Free'; b.patient = null; b.admittedDate = null; b.type = null; b.reason = null;
+  persist(); renderAll();
+  dischargeModal.classList.add('hidden'); dischargeModal.classList.remove('flex');
+  toast('Discharge summary generated for ' + summary.patient);
+  console.log('Discharge Summary:', summary);
+});
+
+load();
+renderAll();
+</script>
+</body>
+</html>

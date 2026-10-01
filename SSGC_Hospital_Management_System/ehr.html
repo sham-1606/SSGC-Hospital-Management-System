@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Electronic Health Records — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{ --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3; --bg:#FFFFFF; --bg-soft:#F8FAFC; --accent:#2563EB; --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706; --violet:#7C3AED; }
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  .btn-primary{background:var(--primary); color:white; transition:all .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+  .btn-violet{background:var(--violet); color:white; transition:all .25s ease;}
+  .btn-violet:hover{background:#6929c4;}
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(43,179,163,0.15);}
+  .modal-backdrop{background:rgba(11,42,67,0.55); backdrop-filter:blur(2px);}
+  .modal-panel{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+  .toast{animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+  .timeline-item{position:relative; padding-left:28px;}
+  .timeline-item::before{content:''; position:absolute; left:5px; top:4px; width:10px; height:10px; border-radius:999px; background:var(--teal);}
+  .timeline-item::after{content:''; position:absolute; left:9px; top:16px; bottom:-24px; width:2px; background:var(--line);}
+  .timeline-item:last-child::after{display:none;}
+  .typing-dot{width:6px; height:6px; border-radius:999px; background:var(--violet); animation:tdot 1.2s ease-in-out infinite;}
+  .typing-dot:nth-child(2){animation-delay:.2s;} .typing-dot:nth-child(3){animation-delay:.4s;}
+  @keyframes tdot{0%,60%,100%{opacity:.3; transform:translateY(0);}30%{opacity:1; transform:translateY(-3px);}}
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+    <a href="home.html" class="flex items-center gap-2.5">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Electronic Health Records</p>
+      </div>
+    </a>
+    <div class="flex items-center gap-2 md:gap-3">
+      <a href="dashboard.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</a>
+      <a href="patient-management.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full"><i data-lucide="users" class="w-4 h-4"></i> Patients</a>
+      <button id="openDigitizeBtn" class="btn-violet text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2"><i data-lucide="scan-text" class="w-4 h-4"></i><span class="hidden sm:inline">AI Digitize</span></button>
+      <button id="openAddRecordBtn" class="btn-primary text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2"><i data-lucide="file-plus-2" class="w-4 h-4"></i><span class="hidden sm:inline">New Record</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <div class="mb-6">
+    <label class="text-xs font-medium text-slate-600">Select Patient</label>
+    <select id="patientSelect" class="w-full max-w-sm mt-1 px-3 py-2.5 rounded-xl border text-sm bg-white" style="border-color:var(--line)"></select>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+
+      <div class="bg-white rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="flex items-center justify-between mb-5">
+          <p class="font-display text-lg font-semibold">Visit History</p>
+          <span class="chip rounded-full px-3 py-1 text-xs" id="recordCount">0 records</span>
+        </div>
+        <div id="timeline" class="space-y-6"></div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <!-- AI CHAT SUMMARY -->
+      <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+        <div class="flex items-center gap-2 mb-1">
+          <i data-lucide="sparkles" class="w-4 h-4" style="color:var(--violet)"></i>
+          <p class="font-display font-semibold">AI Patient Summary</p>
+        </div>
+        <p class="text-xs text-slate-500 mb-3">Simulated LLM assistant — in production this would call an LLM API (e.g. Claude) over the patient's record history.</p>
+        <button id="summarizeBtn" class="btn-outline w-full rounded-xl py-2.5 font-semibold text-sm mb-3">Summarize last 3 visits</button>
+        <div id="summaryBox" class="chip rounded-xl p-4 text-sm leading-relaxed hidden"></div>
+        <div id="typingBox" class="hidden flex items-center gap-1.5 px-1 py-2">
+          <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+        </div>
+      </div>
+
+      <!-- ALLERGY / MEDS SNAPSHOT -->
+      <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+        <p class="font-display font-semibold mb-3">Active Prescriptions</p>
+        <ul id="activeMeds" class="text-sm space-y-2"></ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- NEW RECORD MODAL -->
+<div id="recordModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold">New Visit Record</p>
+      <button class="recordModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="recordForm" class="space-y-3">
+      <div><label class="text-xs font-medium text-slate-600">Doctor</label>
+        <input id="rDoctor" required placeholder="Dr. Amina Farooq" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Diagnosis</label>
+        <input id="rDiagnosis" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Prescription (one per line)</label>
+        <textarea id="rPrescription" rows="3" placeholder="Amoxicillin 500mg — 3x daily, 7 days" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none" style="border-color:var(--line)"></textarea></div>
+      <div><label class="text-xs font-medium text-slate-600">Clinical Notes</label>
+        <textarea id="rNotes" rows="3" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none" style="border-color:var(--line)"></textarea></div>
+      <div><label class="text-xs font-medium text-slate-600">Attach Report (optional)</label>
+        <input id="rFile" type="file" class="w-full mt-1 text-sm"/></div>
+      <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm mt-2">Save Record</button>
+    </form>
+  </div>
+</div>
+
+<!-- OCR DIGITIZE MODAL -->
+<div id="digitizeModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <p class="font-display text-lg font-semibold">AI Prescription Digitization</p>
+        <p class="text-xs text-slate-500">Simulated OCR + NLP cleanup for handwritten/scanned prescriptions</p>
+      </div>
+      <button class="digitizeModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <label class="text-xs font-medium text-slate-600">Paste raw scanned text (simulating OCR output)</label>
+    <textarea id="ocrRaw" rows="5" placeholder="e.g. pt c/o fever x3d , rx: tab paracetmol 500mg tds x5d , tab amoxicilin 500 bd x7d , f/u 1wk"
+      class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none font-mono" style="border-color:var(--line)"></textarea>
+    <button id="runOcrBtn" class="btn-violet w-full rounded-xl py-2.5 font-semibold text-sm mt-3">Digitize with OCR + NLP</button>
+    <div id="ocrResult" class="hidden mt-4 chip rounded-xl p-4 text-sm space-y-2"></div>
+    <button id="acceptOcrBtn" class="hidden btn-teal w-full rounded-xl py-2.5 font-semibold text-sm mt-3">Save as Structured Record</button>
+  </div>
+</div>
+
+<div id="toastRoot" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2"></div>
+
+<script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Doctor','Nurse','Pharmacist','Patient'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+
+document.addEventListener('DOMContentLoaded', () => window.lucide && lucide.createIcons());
+
+const PATIENTS_KEY = 'ssgc_patients_v1';
+const RECORDS_KEY = 'ssgc_records_v1';
+let patients = [], records = {};
+let currentPatientId = null;
+
+function pad2(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg, icon='check-circle'){
+  const el = document.createElement('div');
+  el.className = 'toast bg-white border rounded-xl shadow-lg px-4 py-3 flex items-center gap-2 text-sm';
+  el.style.borderColor = 'var(--line)';
+  el.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4" style="color:var(--teal)"></i>${escapeHtml(msg)}`;
+  document.getElementById('toastRoot').appendChild(el);
+  lucide.createIcons();
+  setTimeout(()=>el.remove(), 3000);
+}
+
+function loadPatients(){
+  patients = JSON.parse(localStorage.getItem(PATIENTS_KEY) || '[]');
+  if (!patients.length){ patients = [{id:'SSGC-2026-00001',name:'Ayesha Raza'},{id:'SSGC-2026-00002',name:'Hassan Iqbal'}]; localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients)); }
+}
+function seedRecords(){
+  return {
+    'SSGC-2026-00001': [
+      { date:'2026-06-02', doctor:'Dr. Amina Farooq', diagnosis:'Seasonal Allergic Rhinitis', prescription:['Cetirizine 10mg — once daily, 10 days'], notes:'Advised to avoid dust exposure.', file:'' },
+      { date:'2026-07-14', doctor:'Dr. Amina Farooq', diagnosis:'Mild Hypertension', prescription:['Amlodipine 5mg — once daily'], notes:'Follow-up in 4 weeks, monitor BP at home.', file:'bp_log_july.pdf' },
+      { date:'2026-08-10', doctor:'Dr. Amina Farooq', diagnosis:'Routine Cardiology Review', prescription:['Amlodipine 5mg — once daily','Aspirin 75mg — once daily'], notes:'BP well controlled. Continue current medication.', file:'ecg_report_aug.pdf' }
+    ],
+    'SSGC-2026-00002': [
+      { date:'2026-05-20', doctor:'Dr. Bilal Sheikh', diagnosis:'Tension Headache', prescription:['Paracetamol 500mg — as needed'], notes:'Stress-related, advised lifestyle changes.', file:'' },
+      { date:'2026-08-15', doctor:'Dr. Bilal Sheikh', diagnosis:'Type 2 Diabetes — newly diagnosed', prescription:['Metformin 500mg — twice daily'], notes:'Referred to dietitian, fasting sugar 148 mg/dL.', file:'blood_sugar_panel.pdf' }
+    ]
+  };
+}
+function load(){
+  loadPatients();
+  records = JSON.parse(localStorage.getItem(RECORDS_KEY) || 'null') || seedRecords();
+  localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+}
+function persist(){ localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); }
+
+function renderPatientSelect(){
+  const sel = document.getElementById('patientSelect');
+  sel.innerHTML = patients.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${p.id})</option>`).join('');
+  currentPatientId = patients[0]?.id;
+  sel.value = currentPatientId;
+}
+document.getElementById('patientSelect').addEventListener('change', e => {
+  currentPatientId = e.target.value;
+  document.getElementById('summaryBox').classList.add('hidden');
+  renderTimeline();
+});
+
+function renderTimeline(){
+  const list = (records[currentPatientId] || []).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('recordCount').textContent = list.length + ' records';
+  const wrap = document.getElementById('timeline');
+  wrap.innerHTML = list.map(r => `
+    <div class="timeline-item">
+      <p class="text-xs text-slate-400 mb-0.5">${r.date}</p>
+      <p class="font-semibold text-sm">${escapeHtml(r.diagnosis)}</p>
+      <p class="text-xs text-slate-500 mb-1.5">Seen by ${escapeHtml(r.doctor)}</p>
+      ${r.prescription.length ? `<div class="text-sm text-slate-600 mb-1"><span class="font-medium">Rx:</span> ${r.prescription.map(escapeHtml).join('; ')}</div>` : ''}
+      ${r.notes ? `<p class="text-sm text-slate-500">${escapeHtml(r.notes)}</p>` : ''}
+      ${r.file ? `<p class="text-xs mt-1 flex items-center gap-1" style="color:var(--primary)"><i data-lucide="paperclip" class="w-3 h-3"></i>${escapeHtml(r.file)}</p>` : ''}
+    </div>`).join('') || '<p class="text-sm text-slate-400">No records yet for this patient.</p>';
+  lucide.createIcons();
+
+  const meds = document.getElementById('activeMeds');
+  const latest = list[0];
+  meds.innerHTML = latest && latest.prescription.length ? latest.prescription.map(m => `
+    <li class="flex items-start gap-2"><i data-lucide="pill" class="w-4 h-4 mt-0.5" style="color:var(--teal)"></i><span>${escapeHtml(m)}</span></li>`).join('')
+    : '<li class="text-slate-400">No active prescriptions on file.</li>';
+  lucide.createIcons();
+}
+
+/* ---- AI summary (rule-based simulation) ---- */
+document.getElementById('summarizeBtn').addEventListener('click', () => {
+  const list = (records[currentPatientId] || []).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+  const patient = patients.find(p => p.id === currentPatientId);
+  document.getElementById('summaryBox').classList.add('hidden');
+  document.getElementById('typingBox').classList.remove('hidden');
+  setTimeout(() => {
+    document.getElementById('typingBox').classList.add('hidden');
+    if (!list.length){
+      document.getElementById('summaryBox').textContent = 'No visit history available to summarize for this patient.';
+    } else {
+      const diagnoses = list.map(r => r.diagnosis).join('; ');
+      const latest = list[0];
+      const trend = list.length > 1 && list[list.length-1].diagnosis !== latest.diagnosis
+        ? `The clinical picture has evolved from "${list[list.length-1].diagnosis}" toward "${latest.diagnosis}".`
+        : `The condition remains consistent with "${latest.diagnosis}".`;
+      const meds = [...new Set(list.flatMap(r => r.prescription))].slice(0,4);
+      document.getElementById('summaryBox').innerHTML = `
+        <p class="font-medium mb-2">${escapeHtml(patient.name)} — last ${list.length} visit(s)</p>
+        <p class="mb-2">Across the reviewed visits (${list[list.length-1].date} → ${list[0].date}), diagnoses recorded were: ${escapeHtml(diagnoses)}. ${trend}</p>
+        ${meds.length ? `<p class="mb-2">Current/recent medications include ${meds.map(escapeHtml).join(', ')}.</p>` : ''}
+        <p class="text-xs text-slate-400">Generated by a rule-based simulation for this offline demo — a production build would call an LLM API with the full record set.</p>`;
+    }
+    document.getElementById('summaryBox').classList.remove('hidden');
+  }, 900);
+});
+
+/* ---- new record modal ---- */
+const recordModal = document.getElementById('recordModal');
+document.getElementById('openAddRecordBtn').addEventListener('click', () => {
+  document.getElementById('recordForm').reset();
+  recordModal.classList.remove('hidden'); recordModal.classList.add('flex');
+});
+document.querySelectorAll('.recordModalClose').forEach(b => b.addEventListener('click', () => { recordModal.classList.add('hidden'); recordModal.classList.remove('flex'); }));
+document.getElementById('recordForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const file = document.getElementById('rFile').files[0];
+  const rec = {
+    date: todayStr(), doctor: document.getElementById('rDoctor').value, diagnosis: document.getElementById('rDiagnosis').value,
+    prescription: document.getElementById('rPrescription').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    notes: document.getElementById('rNotes').value, file: file ? file.name : ''
+  };
+  if (!records[currentPatientId]) records[currentPatientId] = [];
+  records[currentPatientId].push(rec);
+  persist(); renderTimeline();
+  recordModal.classList.add('hidden'); recordModal.classList.remove('flex');
+  toast('Visit record saved');
+});
+
+/* ---- OCR digitization (rule-based simulation) ---- */
+const digitizeModal = document.getElementById('digitizeModal');
+document.getElementById('openDigitizeBtn').addEventListener('click', () => {
+  document.getElementById('ocrRaw').value = '';
+  document.getElementById('ocrResult').classList.add('hidden');
+  document.getElementById('acceptOcrBtn').classList.add('hidden');
+  digitizeModal.classList.remove('hidden'); digitizeModal.classList.add('flex');
+});
+document.querySelectorAll('.digitizeModalClose').forEach(b => b.addEventListener('click', () => { digitizeModal.classList.add('hidden'); digitizeModal.classList.remove('flex'); }));
+
+const ABBR = { 'pt':'patient','c/o':'complains of','rx':'prescription','tab':'Tablet','tds':'three times daily','bd':'twice daily','od':'once daily','f/u':'follow-up','x3d':'for 3 days','x5d':'for 5 days','x7d':'for 7 days','1wk':'1 week','paracetmol':'Paracetamol','amoxicilin':'Amoxicillin' };
+let ocrParsed = null;
+function fakeOcrParse(raw){
+  let cleaned = ' ' + raw.toLowerCase() + ' ';
+  Object.entries(ABBR).forEach(([k,v]) => { cleaned = cleaned.split(' '+k+' ').join(' '+v+' ').split(' '+k+',').join(' '+v+','); });
+  const parts = raw.split(',').map(s=>s.trim()).filter(Boolean);
+  const complaint = (cleaned.match(/complains of ([^,]+)/) || [,'not specified'])[1].trim();
+  const meds = parts.filter(p => /tab|mg|cap|syrup/i.test(p)).map(p => {
+    let m = p;
+    Object.entries(ABBR).forEach(([k,v]) => { m = m.replace(new RegExp('\\b'+k+'\\b','ig'), v); });
+    return m.trim().replace(/^\w/, c=>c.toUpperCase());
+  });
+  const followup = (cleaned.match(/follow-up ([^,]+)/) || [,''])[1].trim();
+  return { complaint, meds, followup, confidence: (86 + Math.floor(Math.random()*10)) };
+}
+document.getElementById('runOcrBtn').addEventListener('click', () => {
+  const raw = document.getElementById('ocrRaw').value.trim();
+  if (!raw){ toast('Paste some scanned text first', 'alert-circle'); return; }
+  document.getElementById('ocrResult').classList.add('hidden');
+  document.getElementById('runOcrBtn').textContent = 'Digitizing...';
+  setTimeout(() => {
+    ocrParsed = fakeOcrParse(raw);
+    document.getElementById('runOcrBtn').textContent = 'Digitize with OCR + NLP';
+    document.getElementById('ocrResult').innerHTML = `
+      <p class="flex items-center gap-1.5 text-xs font-medium mb-1" style="color:var(--violet)"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i>Extraction confidence: ${ocrParsed.confidence}%</p>
+      <p><span class="font-medium">Chief complaint:</span> ${escapeHtml(ocrParsed.complaint)}</p>
+      <p><span class="font-medium">Structured prescription:</span></p>
+      <ul class="list-disc pl-5">${ocrParsed.meds.map(m=>`<li>${escapeHtml(m)}</li>`).join('') || '<li>None detected</li>'}</ul>
+      ${ocrParsed.followup ? `<p><span class="font-medium">Follow-up:</span> ${escapeHtml(ocrParsed.followup)}</p>` : ''}`;
+    document.getElementById('ocrResult').classList.remove('hidden');
+    document.getElementById('acceptOcrBtn').classList.remove('hidden');
+    lucide.createIcons();
+  }, 1100);
+});
+document.getElementById('acceptOcrBtn').addEventListener('click', () => {
+  if (!ocrParsed) return;
+  if (!records[currentPatientId]) records[currentPatientId] = [];
+  records[currentPatientId].push({
+    date: todayStr(), doctor: 'AI-Digitized Entry', diagnosis: ocrParsed.complaint,
+    prescription: ocrParsed.meds, notes: ocrParsed.followup ? ('Follow-up: ' + ocrParsed.followup) : '', file: ''
+  });
+  persist(); renderTimeline();
+  digitizeModal.classList.add('hidden'); digitizeModal.classList.remove('flex');
+  toast('Digitized record added to patient history');
+});
+
+load();
+renderPatientSelect();
+renderTimeline();
+</script>
+</body>
+</html>

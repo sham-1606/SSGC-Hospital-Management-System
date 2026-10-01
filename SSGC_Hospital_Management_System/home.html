@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title> SSGC Hospital — Advanced Care, Human Touch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --ink:#0B2A43;
+    --primary:#0F4C81;
+    --teal:#2BB3A3;
+    --bg:#FFFFFF;
+    --bg-soft:#F8FAFC;
+    --accent:#2563EB;
+    --line:#E2E8F0;
+    --emergency:#DC2626;
+  }
+  html{scroll-behavior:smooth;}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg);}
+  .font-display{font-family:'Fraunces','Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  ::selection{background:var(--teal); color:white;}
+
+  /* fade-up reveal */
+  .reveal{opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease;}
+  .reveal.in{opacity:1; transform:translateY(0);}
+
+  /* nav */
+  #navbar{transition:background-color .35s ease, box-shadow .35s ease, padding .35s ease;}
+  #navbar.scrolled{background:rgba(255,255,255,0.92); backdrop-filter:blur(10px); box-shadow:0 1px 0 var(--line);}
+
+  /* pulse line signature element */
+  .pulse-wrap{width:100%; overflow:hidden; line-height:0;}
+  .pulse-path{
+    stroke-dasharray: 900;
+    stroke-dashoffset: 900;
+    transition: stroke-dashoffset 1.6s cubic-bezier(.16,.84,.44,1);
+  }
+  .pulse-path.drawn{stroke-dashoffset:0;}
+
+  /* floating info cards in hero */
+  @keyframes floatY{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+  }
+  .float-card{animation:floatY 5s ease-in-out infinite;}
+  .float-card.d2{animation-delay:1.2s;}
+  .float-card.d3{animation-delay:2.4s;}
+
+  /* heartbeat blip on emergency dot */
+  @keyframes blip{
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:.35; transform:scale(1.4);}
+  }
+  .blip{animation:blip 1.6s ease-in-out infinite;}
+
+  .card-hover{transition:transform .35s ease, box-shadow .35s ease, border-color .35s ease;}
+  .card-hover:hover{transform:translateY(-6px); box-shadow:0 20px 40px -20px rgba(15,76,129,0.25); border-color:var(--teal);}
+
+  .btn-primary{background:var(--primary); color:white; transition:background-color .25s ease, transform .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-2px);}
+
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+
+  .btn-emergency{background:var(--emergency); color:white; transition:all .25s ease;}
+  .btn-emergency:hover{background:#b91c1c;}
+
+  .chip{border:1px solid var(--line); background:white;}
+
+  .nav-link{position:relative;}
+  .nav-link::after{
+    content:''; position:absolute; left:0; bottom:-4px; height:2px; width:0%;
+    background:var(--teal); transition:width .25s ease;
+  }
+  .nav-link:hover::after{width:100%;}
+
+  /* mobile menu */
+  #mobileMenu{transform:translateX(100%); transition:transform .35s ease;}
+  #mobileMenu.open{transform:translateX(0);}
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .float-card, .blip{animation:none;}
+    .reveal{transition:none; opacity:1; transform:none;}
+  }
+
+  .skeleton{background:linear-gradient(90deg, var(--bg-soft) 25%, #eef2f6 37%, var(--bg-soft) 63%); background-size:400% 100%; animation:sk 1.4s ease infinite;}
+  @keyframes sk{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+  @keyframes breatheChest{0%,100%{transform:scaleY(1);}50%{transform:scaleY(1.035);}}
+  .breathe{animation:breatheChest 3.4s ease-in-out infinite;}
+
+  @keyframes checkPulse{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-5deg);}}
+  .arm-check{animation:checkPulse 2.6s ease-in-out infinite;}
+
+  @keyframes ecgScan{0%{stroke-dashoffset:0;}100%{stroke-dashoffset:-220;}}
+  .ecg-line{stroke-dasharray:220; animation:ecgScan 2.4s linear infinite;}
+
+  @keyframes dripFall{0%{transform:translateY(0); opacity:1;}75%{opacity:1;}100%{transform:translateY(210px); opacity:0;}}
+  .iv-drip{transform-box:fill-box; transform-origin:center; animation:dripFall 1.8s ease-in infinite;}
+
+  @keyframes monBlip{0%,100%{opacity:1; transform:scale(1);}50%{opacity:.3; transform:scale(1.5);}}
+  .mon-blip{transform-box:fill-box; transform-origin:center; animation:monBlip 1.2s ease-in-out infinite;}
+
+  @media (prefers-reduced-motion: reduce){
+    .breathe, .arm-check, .ecg-line, .iv-drip, .mon-blip{animation:none;}
+  }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- ============ NAVBAR ============ -->
+<header id="navbar" class="fixed top-0 left-0 right-0 z-50 py-4">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 flex items-center justify-between gap-4">
+    <a href="#home" class="flex items-center gap-2.5 shrink-0">
+      <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-lg" style="color:var(--ink)">SSGC</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)"> Hospital</p>
+      </div>
+    </a>
+
+    <nav class="hidden lg:flex items-center gap-8 font-medium text-sm">
+      <a href="#home" class="nav-link">Home</a>
+      <a href="#about" class="nav-link">About Us</a>
+      <a href="#services" class="nav-link">Services</a>
+      <a href="#doctors" class="nav-link">Doctors</a>
+      <a href="#departments" class="nav-link">Departments</a>
+      <a href="#contact" class="nav-link">Contact</a>
+    </nav>
+
+    <div class="hidden lg:flex items-center gap-3">
+      <button aria-label="Search" class="p-2 rounded-full hover:bg-slate-100 transition-colors">
+        <i data-lucide="search" class="w-4.5 h-4.5" style="color:var(--ink)"></i>
+      </button>
+      <a href="login.html" class="text-sm font-medium px-3 py-2 flex items-center gap-1.5" style="color:var(--ink)">
+        <i data-lucide="lock" class="w-3.5 h-3.5"></i> Staff Login
+      </a>
+      <a href="appointment-management.html" class="text-sm font-medium px-3 py-2 flex items-center gap-1.5" style="color:var(--ink)">
+        <i data-lucide="calendar-cog" class="w-3.5 h-3.5"></i> Appointments
+      </a>
+      <a href="#" class="btn-outline text-sm font-medium px-4 py-2 rounded-full">Register</a>
+      <a href="#appointment" class="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full">Book Appointment</a>
+      <a href="#emergency" class="btn-emergency text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5">
+        <i data-lucide="phone-call" class="w-4 h-4"></i> Emergency
+      </a>
+    </div>
+
+    <button id="menuBtn" aria-label="Open menu" class="lg:hidden p-2">
+      <i data-lucide="menu" class="w-6 h-6" style="color:var(--ink)"></i>
+    </button>
+  </div>
+</header>
+
+<!-- mobile menu panel -->
+<div id="mobileMenu" class="fixed top-0 right-0 h-full w-[78%] max-w-xs bg-white z-[60] shadow-2xl p-6 flex flex-col gap-1 lg:hidden">
+  <div class="flex justify-end mb-4">
+    <button id="closeMenuBtn" aria-label="Close menu" class="p-2"><i data-lucide="x" class="w-6 h-6"></i></button>
+  </div>
+  <a href="#home" class="mobile-link py-3 border-b border-slate-100 font-medium">Home</a>
+  <a href="#about" class="mobile-link py-3 border-b border-slate-100 font-medium">About Us</a>
+  <a href="#services" class="mobile-link py-3 border-b border-slate-100 font-medium">Services</a>
+  <a href="#doctors" class="mobile-link py-3 border-b border-slate-100 font-medium">Doctors</a>
+  <a href="#departments" class="mobile-link py-3 border-b border-slate-100 font-medium">Departments</a>
+  <a href="#contact" class="mobile-link py-3 border-b border-slate-100 font-medium">Contact</a>
+  <a href="login.html" class="mobile-link py-3 border-b border-slate-100 font-medium">Staff Login</a>
+  <a href="appointment-management.html" class="mobile-link py-3 border-b border-slate-100 font-medium">Manage Appointments</a>
+  <a href="#appointment" class="mobile-link btn-primary text-center rounded-full py-3 mt-5 font-semibold">Book Appointment</a>
+  <a href="#emergency" class="mobile-link btn-emergency text-center rounded-full py-3 mt-3 font-semibold">Emergency Call</a>
+</div>
+<div id="menuOverlay" class="fixed inset-0 bg-black/40 z-[55] hidden lg:hidden"></div>
+
+<!-- ============ HERO ============ -->
+<section id="home" class="relative pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden" style="background:linear-gradient(180deg,#F8FAFC 0%, #FFFFFF 100%);">
+  <div class="absolute inset-0 -z-10 opacity-[0.05]" style="background-image:radial-gradient(var(--primary) 1px, transparent 1px); background-size:26px 26px;"></div>
+
+  <div class="max-w-7xl mx-auto px-5 md:px-8 grid lg:grid-cols-2 gap-14 items-center">
+    <div>
+      <div class="inline-flex items-center gap-2 chip rounded-full px-4 py-1.5 mb-6 reveal">
+        <span class="w-2 h-2 rounded-full blip" style="background:var(--teal)"></span>
+        <span class="font-mono text-xs tracking-wide uppercase" style="color:var(--primary)">Now Accepting New Patients</span>
+      </div>
+
+      <h1 class="font-display font-semibold text-4xl md:text-6xl leading-[1.08] mb-6 reveal" style="color:var(--ink)">
+        Advanced healthcare<br/>for a <span style="color:var(--teal)">healthier</span> tomorrow.
+      </h1>
+
+      <p class="text-base md:text-lg text-slate-600 max-w-lg mb-8 reveal">
+        Exceptional care from experienced specialists, backed by advanced medical technology and a team that never stops listening. Book appointments online and reach your records anytime.
+      </p>
+
+      <div class="flex flex-wrap gap-4 mb-10 reveal">
+        <a href="#appointment" class="btn-primary rounded-full px-7 py-3.5 font-semibold flex items-center gap-2">
+          <i data-lucide="calendar-check" class="w-4.5 h-4.5"></i> Book Appointment
+        </a>
+        <a href="#doctors" class="btn-outline rounded-full px-7 py-3.5 font-semibold flex items-center gap-2">
+          <i data-lucide="stethoscope" class="w-4.5 h-4.5"></i> Find a Doctor
+        </a>
+      </div>
+
+      <div class="flex flex-wrap gap-x-8 gap-y-3 reveal">
+        <div class="flex items-center gap-2"><i data-lucide="badge-check" class="w-4.5 h-4.5" style="color:var(--teal)"></i><span class="text-sm font-medium text-slate-700">NABH Certified</span></div>
+        <div class="flex items-center gap-2"><i data-lucide="clock" class="w-4.5 h-4.5" style="color:var(--teal)"></i><span class="text-sm font-medium text-slate-700">24×7 Emergency</span></div>
+        <div class="flex items-center gap-2"><i data-lucide="credit-card" class="w-4.5 h-4.5" style="color:var(--teal)"></i><span class="text-sm font-medium text-slate-700">Cashless Insurance</span></div>
+        <div class="flex items-center gap-2"><i data-lucide="users" class="w-4.5 h-4.5" style="color:var(--teal)"></i><span class="text-sm font-medium text-slate-700">250+ Expert Doctors</span></div>
+      </div>
+    </div>
+
+    <div class="relative reveal">
+      <div class="rounded-[2rem] overflow-hidden shadow-2xl relative h-[460px]" style="background:linear-gradient(180deg,#EAF2F8 0%, #F8FAFC 100%);">
+        <svg viewBox="0 0 600 460" class="w-full h-full" role="img" aria-label="Illustration of a doctor checking on a patient resting in bed, with a heart-rate monitor and IV drip nearby">
+          <defs>
+            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#CFE6F5"/>
+              <stop offset="100%" stop-color="#EAF2F8"/>
+            </linearGradient>
+            <linearGradient id="bagGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#BFE9E1"/>
+              <stop offset="100%" stop-color="#8FD4C7"/>
+            </linearGradient>
+            <clipPath id="screenClip"><rect x="438" y="148" width="114" height="66" rx="4"/></clipPath>
+          </defs>
+
+          <!-- room -->
+          <rect x="0" y="0" width="600" height="460" fill="#F8FAFC"/>
+          <rect x="0" y="392" width="600" height="4" fill="#E2E8F0"/>
+          <rect x="452" y="24" width="118" height="92" rx="8" fill="url(#skyGrad)" stroke="#E2E8F0"/>
+          <rect x="452" y="66" width="118" height="4" fill="#F8FAFC"/>
+          <rect x="509" y="24" width="4" height="92" fill="#F8FAFC"/>
+
+          <!-- privacy curtain accent -->
+          <path d="M0 40 Q20 20 40 40 T80 40 T120 40 V0 H0 Z" fill="#EAF2F8"/>
+
+          <!-- IV stand -->
+          <ellipse cx="520" cy="382" rx="26" ry="6" fill="#94A3B8"/>
+          <rect x="517" y="70" width="5" height="312" fill="#B6C2CF"/>
+          <rect x="497" y="52" width="44" height="58" rx="9" fill="url(#bagGrad)" stroke="#2BB3A3" stroke-width="1.5"/>
+          <path d="M519 110 Q519 200 519 240 Q470 270 420 320" fill="none" stroke="#B6C2CF" stroke-width="3" stroke-linecap="round"/>
+          <circle class="iv-drip" cx="519" cy="118" r="3.4" fill="#2BB3A3"/>
+
+          <!-- bed -->
+          <rect x="28" y="228" width="392" height="42" rx="10" fill="#EAF2F8" stroke="#E2E8F0"/>
+          <rect x="28" y="258" width="392" height="150" rx="18" fill="#FFFFFF" stroke="#E2E8F0"/>
+          <ellipse cx="98" cy="272" rx="48" ry="21" fill="#F1F5F9" stroke="#E2E8F0"/>
+
+          <!-- patient -->
+          <g class="breathe" style="transform-box:fill-box; transform-origin:center;">
+            <path d="M78 288 Q80 400 130 400 L340 400 Q380 400 378 320 Q378 288 330 282 Q220 268 130 280 Q90 282 78 288 Z" fill="#DCEEF4" stroke="#BFDCE8"/>
+            <path d="M110 320 Q220 336 360 320" fill="none" stroke="#C7E1EA" stroke-width="3" stroke-linecap="round"/>
+            <path d="M105 350 Q220 366 355 350" fill="none" stroke="#C7E1EA" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <circle cx="103" cy="258" r="27" fill="#EEC29A"/>
+          <path d="M78 246 Q84 220 108 220 Q132 220 132 244 Q120 232 103 232 Q86 232 78 246 Z" fill="#4B3A2F"/>
+          <path d="M92 262 q11 8 22 0" fill="none" stroke="#6B4A38" stroke-width="2" stroke-linecap="round"/>
+          <!-- patient's arm resting out for pulse check -->
+          <path d="M126 276 Q175 282 205 296" fill="none" stroke="#EEC29A" stroke-width="15" stroke-linecap="round"/>
+          <ellipse cx="212" cy="300" rx="12" ry="9" fill="#EEC29A"/>
+
+          <!-- doctor -->
+          <g>
+            <rect x="298" y="372" width="17" height="70" rx="7" fill="#0B2A43"/>
+            <rect x="330" y="372" width="17" height="70" rx="7" fill="#0B2A43"/>
+            <path d="M275 300 Q272 250 322 248 Q374 250 372 300 L372 366 Q372 384 344 384 L302 384 Q275 384 275 366 Z" fill="#FFFFFF" stroke="#E2E8F0"/>
+            <path d="M323 250 L318 384" fill="none" stroke="#E9EEF3" stroke-width="2"/>
+            <rect x="308" y="256" width="30" height="18" fill="#0F4C81"/>
+            <!-- stethoscope -->
+            <path d="M304 258 Q300 288 322 292 Q344 288 340 258" fill="none" stroke="#2BB3A3" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="322" cy="296" r="7" fill="#2BB3A3"/>
+            <!-- relaxed arm holding clipboard -->
+            <path d="M366 300 Q384 320 380 350" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round"/>
+            <rect x="368" y="344" width="26" height="34" rx="3" fill="#F8FAFC" stroke="#94A3B8"/>
+            <line x1="373" y1="352" x2="389" y2="352" stroke="#94A3B8" stroke-width="2"/>
+            <line x1="373" y1="359" x2="389" y2="359" stroke="#94A3B8" stroke-width="2"/>
+            <line x1="373" y1="366" x2="384" y2="366" stroke="#94A3B8" stroke-width="2"/>
+            <!-- pulse-checking arm (animated) -->
+            <g class="arm-check" style="transform-box:fill-box; transform-origin:296px 302px;">
+              <path d="M292 300 Q250 296 214 300" fill="none" stroke="#FFFFFF" stroke-width="17" stroke-linecap="round"/>
+              <ellipse cx="210" cy="300" rx="11" ry="9" fill="#EEC29A"/>
+            </g>
+            <circle cx="323" cy="228" r="26" fill="#D9A876"/>
+            <path d="M298 220 Q300 196 324 196 Q350 196 348 222 Q336 208 323 208 Q308 208 298 220 Z" fill="#241A14"/>
+            <circle cx="315" cy="230" r="2" fill="#241A14"/>
+            <circle cx="333" cy="230" r="2" fill="#241A14"/>
+            <path d="M312 240 q11 7 22 0" fill="none" stroke="#8A5A3A" stroke-width="2" stroke-linecap="round"/>
+          </g>
+
+          <!-- monitor -->
+          <rect x="453" y="182" width="6" height="42" fill="#94A3B8"/>
+          <ellipse cx="456" cy="226" rx="20" ry="5" fill="#94A3B8"/>
+          <rect x="422" y="128" width="146" height="98" rx="12" fill="#0B2A43"/>
+          <rect x="438" y="148" width="114" height="66" rx="4" fill="#06202F"/>
+          <g clip-path="url(#screenClip)">
+            <polyline class="ecg-line" points="438,182 460,182 468,166 476,198 484,182 496,182 504,170 512,192 520,182 552,182 574,182 596,182"
+              fill="none" stroke="#2BB3A3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <circle class="mon-blip" cx="546" cy="160" r="4" fill="#DC2626"/>
+          <text x="533" y="203" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5FD9C7">78 bpm</text>
+        </svg>
+        <div class="absolute inset-0 pointer-events-none" style="background:linear-gradient(180deg, rgba(15,76,129,0.02) 0%, rgba(15,76,129,0.06) 100%);"></div>
+      </div>
+
+      <div class="float-card absolute -left-6 top-8 bg-white rounded-2xl shadow-xl px-5 py-4 flex items-center gap-3 border" style="border-color:var(--line)">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#FEE2E2"><i data-lucide="siren" class="w-5 h-5" style="color:var(--emergency)"></i></div>
+        <div><p class="font-semibold text-sm">24/7 Emergency</p><p class="text-xs text-slate-500">Always ready</p></div>
+      </div>
+
+      <div class="float-card d2 absolute -right-6 top-1/3 bg-white rounded-2xl shadow-xl px-5 py-4 flex items-center gap-3 border" style="border-color:var(--line)">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#E0F2F1"><i data-lucide="smile" class="w-5 h-5" style="color:var(--teal)"></i></div>
+        <div><p class="font-semibold text-sm">15,000+</p><p class="text-xs text-slate-500">Happy patients</p></div>
+      </div>
+
+      <div class="float-card d3 absolute -left-4 bottom-6 bg-white rounded-2xl shadow-xl px-5 py-4 flex items-center gap-3 border" style="border-color:var(--line)">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#DBEAFE"><i data-lucide="layout-grid" class="w-5 h-5" style="color:var(--primary)"></i></div>
+        <div><p class="font-semibold text-sm">30+ Departments</p><p class="text-xs text-slate-500">Under one roof</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- pulse line divider -->
+<div class="pulse-wrap bg-white">
+  <svg id="pulse1" viewBox="0 0 1200 60" class="w-full h-10" preserveAspectRatio="none">
+    <path class="pulse-path" d="M0 30 H420 L450 8 L472 52 L494 30 H540 L560 15 L580 30 H1200" fill="none" stroke="#2BB3A3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<!-- ============ STATISTICS ============ -->
+<section class="py-16" style="background:var(--bg-soft)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 text-center">
+    <div class="reveal">
+      <p class="font-mono font-semibold text-3xl md:text-4xl" style="color:var(--primary)"><span class="counter" data-target="250">0</span>+</p>
+      <p class="text-sm text-slate-500 mt-1">Doctors</p>
+    </div>
+    <div class="reveal">
+      <p class="font-mono font-semibold text-3xl md:text-4xl" style="color:var(--primary)"><span class="counter" data-target="30">0</span></p>
+      <p class="text-sm text-slate-500 mt-1">Departments</p>
+    </div>
+    <div class="reveal">
+      <p class="font-mono font-semibold text-3xl md:text-4xl" style="color:var(--primary)"><span class="counter" data-target="20000">0</span>+</p>
+      <p class="text-sm text-slate-500 mt-1">Happy Patients</p>
+    </div>
+    <div class="reveal">
+      <p class="font-mono font-semibold text-3xl md:text-4xl" style="color:var(--primary)"><span class="counter" data-target="15">0</span></p>
+      <p class="text-sm text-slate-500 mt-1">Years Experience</p>
+    </div>
+    <div class="reveal">
+      <p class="font-mono font-semibold text-3xl md:text-4xl" style="color:var(--primary)">24/7</p>
+      <p class="text-sm text-slate-500 mt-1">Emergency</p>
+    </div>
+    <div class="reveal">
+      <p class="font-mono font-semibold text-3xl md:text-4xl" style="color:var(--primary)"><span class="counter" data-target="50">0</span>+</p>
+      <p class="text-sm text-slate-500 mt-1">Medical Services</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SERVICES ============ -->
+<section id="services" class="py-24">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="max-w-2xl mb-14 reveal">
+      <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">What we treat</p>
+      <h2 class="font-display font-semibold text-3xl md:text-4xl">Our Services</h2>
+      <p class="text-slate-600 mt-4">From routine checkups to complex procedures — every service is backed by the same standard of care.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- General Medicine -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#DBEAFE">
+          <span style="font-size:30px;line-height:1;">🩺</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">General Medicine</h3>
+        <p class="text-sm text-slate-600 mb-4">Everyday health concerns diagnosed and treated by experienced physicians.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Cardiology -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#FEE2E2">
+          <span style="font-size:30px;line-height:1;">❤️</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Cardiology</h3>
+        <p class="text-sm text-slate-600 mb-4">Heart health monitoring, diagnostics, and interventional cardiac care.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Neurology -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#E0F2F1">
+          <span style="font-size:30px;line-height:1;">🧠</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Neurology</h3>
+        <p class="text-sm text-slate-600 mb-4">Comprehensive care for the brain, spine, and nervous system.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Orthopedics -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#FEF3C7">
+          <span style="font-size:30px;line-height:1;">🦴</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Orthopedics</h3>
+        <p class="text-sm text-slate-600 mb-4">Joint, bone, and muscle treatment from sprains to full replacements.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Pediatrics -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#EDE9FE">
+          <span style="font-size:30px;line-height:1;">👶</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Pediatrics</h3>
+        <p class="text-sm text-slate-600 mb-4">Gentle, specialized care for infants, children, and teens.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Emergency Care -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#FEE2E2">
+          <span style="font-size:30px;line-height:1;">🚨</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Emergency Care</h3>
+        <p class="text-sm text-slate-600 mb-4">Round-the-clock trauma and critical care with rapid response teams.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Laboratory -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#E0F2F1">
+          <span style="font-size:30px;line-height:1;">🔬</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Laboratory</h3>
+        <p class="text-sm text-slate-600 mb-4">Accurate diagnostics with fast turnaround on all major tests.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <!-- Pharmacy -->
+      <div class="reveal card-hover rounded-2xl border p-6" style="border-color:var(--line)">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background:#DBEAFE">
+          <span style="font-size:30px;line-height:1;">💊</span>
+        </div>
+        <h3 class="font-semibold text-lg mb-2">Pharmacy</h3>
+        <p class="text-sm text-slate-600 mb-4">In-house pharmacy stocked round the clock with genuine medication.</p>
+        <a href="#" class="text-sm font-semibold inline-flex items-center gap-1" style="color:var(--primary)">Learn more <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY CHOOSE US ============ -->
+<section id="about" class="py-24" style="background:var(--bg-soft)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="max-w-2xl mb-14 reveal">
+      <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">Why SSGC</p>
+      <h2 class="font-display font-semibold text-3xl md:text-4xl">Why Choose Our Hospital?</h2>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">👨‍⚕️</span>
+        <h3 class="font-semibold mb-1.5">Experienced Doctors</h3>
+        <p class="text-sm text-slate-600">Specialists averaging over a decade in their field.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">🏥</span>
+        <h3 class="font-semibold mb-1.5">Advanced Equipment</h3>
+        <p class="text-sm text-slate-600">Modern imaging and diagnostic technology on-site.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">📅</span>
+        <h3 class="font-semibold mb-1.5">Online Booking</h3>
+        <p class="text-sm text-slate-600">Reserve your slot in under a minute, any time of day.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">📋</span>
+        <h3 class="font-semibold mb-1.5">Electronic Records</h3>
+        <p class="text-sm text-slate-600">Your full medical history, accessible whenever you need it.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">💰</span>
+        <h3 class="font-semibold mb-1.5">Affordable Treatment</h3>
+        <p class="text-sm text-slate-600">Transparent pricing with no hidden costs.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">🚨</span>
+        <h3 class="font-semibold mb-1.5">24/7 Emergency Care</h3>
+        <p class="text-sm text-slate-600">A trauma team on standby, every hour of the year.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">📱</span>
+        <h3 class="font-semibold mb-1.5">Digital Prescriptions</h3>
+        <p class="text-sm text-slate-600">Sent straight to your phone and our in-house pharmacy.</p>
+      </div>
+      <div class="reveal">
+        <span style="font-size:36px;line-height:1;display:block;margin-bottom:14px;">🔬</span>
+        <h3 class="font-semibold mb-1.5">Fast Lab Results</h3>
+        <p class="text-sm text-slate-600">Most reports ready within hours, not days.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOCTORS ============ -->
+<section id="doctors" class="py-24">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="flex items-end justify-between flex-wrap gap-4 mb-14 reveal">
+      <div class="max-w-2xl">
+        <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">Our people</p>
+        <h2 class="font-display font-semibold text-3xl md:text-4xl">Meet Our Specialists</h2>
+      </div>
+      <a href="#" class="btn-outline rounded-full px-6 py-2.5 font-semibold text-sm">View All Doctors</a>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="reveal card-hover rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=500&q=80" alt="Dr. Ananya Rao" class="w-full h-56 object-cover"/>
+        <div class="p-5">
+          <h3 class="font-semibold">Dr. Ananya Rao</h3>
+          <p class="text-sm text-slate-500 mb-2">MD, Cardiology · 12 yrs experience</p>
+          <div class="flex items-center gap-1 mb-3"><i data-lucide="star" class="w-3.5 h-3.5 fill-current" style="color:#F59E0B"></i><span class="text-xs font-medium">4.9 rating</span><span class="text-xs text-slate-400 ml-2">· Available Today</span></div>
+          <a href="#appointment" class="btn-primary block text-center rounded-full py-2 text-sm font-semibold">Book Appointment</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=500&q=80" alt="Dr. Vikram Sen" class="w-full h-56 object-cover"/>
+        <div class="p-5">
+          <h3 class="font-semibold">Dr. Vikram Sen</h3>
+          <p class="text-sm text-slate-500 mb-2">MBBS, Neurology · 15 yrs experience</p>
+          <div class="flex items-center gap-1 mb-3"><i data-lucide="star" class="w-3.5 h-3.5 fill-current" style="color:#F59E0B"></i><span class="text-xs font-medium">4.8 rating</span><span class="text-xs text-slate-400 ml-2">· Mon–Fri</span></div>
+          <a href="#appointment" class="btn-primary block text-center rounded-full py-2 text-sm font-semibold">Book Appointment</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=500&q=80" alt="Dr. Priya Nair" class="w-full h-56 object-cover"/>
+        <div class="p-5">
+          <h3 class="font-semibold">Dr. Priya Nair</h3>
+          <p class="text-sm text-slate-500 mb-2">MD, Pediatrics · 9 yrs experience</p>
+          <div class="flex items-center gap-1 mb-3"><i data-lucide="star" class="w-3.5 h-3.5 fill-current" style="color:#F59E0B"></i><span class="text-xs font-medium">5.0 rating</span><span class="text-xs text-slate-400 ml-2">· Available Today</span></div>
+          <a href="#appointment" class="btn-primary block text-center rounded-full py-2 text-sm font-semibold">Book Appointment</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=500&q=80" alt="Dr. Arjun Mehta" class="w-full h-56 object-cover"/>
+        <div class="p-5">
+          <h3 class="font-semibold">Dr. Arjun Mehta</h3>
+          <p class="text-sm text-slate-500 mb-2">MS, Orthopedics · 18 yrs experience</p>
+          <div class="flex items-center gap-1 mb-3"><i data-lucide="star" class="w-3.5 h-3.5 fill-current" style="color:#F59E0B"></i><span class="text-xs font-medium">4.9 rating</span><span class="text-xs text-slate-400 ml-2">· Tue–Sat</span></div>
+          <a href="#appointment" class="btn-primary block text-center rounded-full py-2 text-sm font-semibold">Book Appointment</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- pulse divider -->
+<div class="pulse-wrap" style="background:var(--bg-soft)">
+  <svg id="pulse2" viewBox="0 0 1200 60" class="w-full h-10" preserveAspectRatio="none">
+    <path class="pulse-path" d="M0 30 H420 L450 8 L472 52 L494 30 H540 L560 15 L580 30 H1200" fill="none" stroke="#0F4C81" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<!-- ============ DEPARTMENTS ============ -->
+<section id="departments" class="py-24" style="background:var(--bg-soft)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="max-w-2xl mb-14 reveal">
+      <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">Under one roof</p>
+      <h2 class="font-display font-semibold text-3xl md:text-4xl">Departments</h2>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Cardiology department"/>
+        <div class="p-5">
+          <i data-lucide="heart-pulse" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Cardiology</h3>
+          <p class="text-xs text-slate-600 mb-3">Full-spectrum heart diagnostics and treatment.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1631563019676-dade0dbdb8fc?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Neurology department"/>
+        <div class="p-5">
+          <i data-lucide="brain" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Neurology</h3>
+          <p class="text-xs text-slate-600 mb-3">Brain, spine and nerve disorder care.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Orthopedics department"/>
+        <div class="p-5">
+          <i data-lucide="bone" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Orthopedics</h3>
+          <p class="text-xs text-slate-600 mb-3">Joint, bone and sports injury treatment.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Pediatrics department"/>
+        <div class="p-5">
+          <i data-lucide="baby" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Pediatrics</h3>
+          <p class="text-xs text-slate-600 mb-3">Compassionate care from birth through teens.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Dermatology department"/>
+        <div class="p-5">
+          <i data-lucide="sparkles" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Dermatology</h3>
+          <p class="text-xs text-slate-600 mb-3">Skin, hair and nail health for all ages.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1666214280391-8ff5bd3c0bf0?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="ENT department"/>
+        <div class="p-5">
+          <i data-lucide="ear" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">ENT</h3>
+          <p class="text-xs text-slate-600 mb-3">Ear, nose and throat diagnostics and surgery.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1631563019676-3c5ad4c56f9c?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Oncology department"/>
+        <div class="p-5">
+          <i data-lucide="shield-plus" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Oncology</h3>
+          <p class="text-xs text-slate-600 mb-3">Cancer screening, treatment and support.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden bg-white border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=500&q=80" class="w-full h-36 object-cover" alt="Gynecology department"/>
+        <div class="p-5">
+          <i data-lucide="flower" class="w-5 h-5 mb-2" style="color:var(--primary)"></i>
+          <h3 class="font-semibold mb-1">Gynecology</h3>
+          <p class="text-xs text-slate-600 mb-3">Women's health across every life stage.</p>
+          <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Explore →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APPOINTMENT ============ -->
+<section id="appointment" class="py-24">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="rounded-[2rem] grid lg:grid-cols-2 gap-10 items-center overflow-hidden p-10 md:p-14" style="background:linear-gradient(120deg, var(--primary) 0%, #124f83 60%, var(--teal) 130%);">
+      <div class="reveal text-white">
+        <p class="font-mono text-xs tracking-widest uppercase mb-3 text-white/70">Skip the waiting room</p>
+        <h2 class="font-display font-semibold text-3xl md:text-4xl mb-4">Book your appointment in under a minute</h2>
+        <p class="text-white/80 mb-8">Pick a specialist, choose a time that works, and get an instant confirmation — no phone calls required.</p>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+          <div class="flex items-center gap-2 text-sm"><i data-lucide="check-circle" class="w-4 h-4"></i>Easy booking</div>
+          <div class="flex items-center gap-2 text-sm"><i data-lucide="check-circle" class="w-4 h-4"></i>Instant confirmation</div>
+          <div class="flex items-center gap-2 text-sm"><i data-lucide="check-circle" class="w-4 h-4"></i>Experienced doctors</div>
+          <div class="flex items-center gap-2 text-sm"><i data-lucide="check-circle" class="w-4 h-4"></i>Flexible schedules</div>
+        </div>
+        <a href="#contact" class="inline-flex items-center gap-2 bg-white rounded-full px-7 py-3.5 font-semibold" style="color:var(--primary)">Book Now <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+      </div>
+      <div class="reveal hidden lg:block">
+        <div class="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20">
+          <div class="flex items-center justify-between mb-5">
+            <p class="text-white font-semibold">Quick Booking</p>
+            <i data-lucide="calendar" class="w-5 h-5 text-white"></i>
+          </div>
+          <div class="space-y-3">
+            <div class="bg-white/95 rounded-xl px-4 py-3 text-sm text-slate-600">Select Department</div>
+            <div class="bg-white/95 rounded-xl px-4 py-3 text-sm text-slate-600">Select Doctor</div>
+            <div class="bg-white/95 rounded-xl px-4 py-3 text-sm text-slate-600">Pick Date &amp; Time</div>
+            <div class="rounded-xl px-4 py-3 text-sm font-semibold text-center" style="background:var(--ink); color:white">Confirm Appointment</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIALS ============ -->
+<section class="py-24" style="background:var(--bg-soft)">
+  <div class="max-w-4xl mx-auto px-5 md:px-8 text-center">
+    <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">Patient stories</p>
+    <h2 class="font-display font-semibold text-3xl md:text-4xl mb-14 reveal">What Our Patients Say</h2>
+
+    <div class="relative">
+      <div id="testimonialTrack" class="overflow-hidden">
+        <div id="testimonialSlides" class="flex transition-transform duration-500 ease-out">
+
+          <div class="w-full shrink-0 px-4">
+            <div class="bg-white rounded-2xl p-8 border" style="border-color:var(--line)">
+              <div class="flex justify-center gap-1 mb-4">
+                <i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i>
+              </div>
+              <p class="text-lg text-slate-700 mb-6">"From the front desk to the discharge summary, everything felt organized. My cardiologist explained every option clearly before we decided on a plan."</p>
+              <div class="flex items-center justify-center gap-3">
+                <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" class="w-11 h-11 rounded-full object-cover" alt="Patient photo"/>
+                <div class="text-left"><p class="font-semibold text-sm">Kavita Sharma</p><p class="text-xs text-slate-500">Nellore, AP</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="w-full shrink-0 px-4">
+            <div class="bg-white rounded-2xl p-8 border" style="border-color:var(--line)">
+              <div class="flex justify-center gap-1 mb-4">
+                <i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i>
+              </div>
+              <p class="text-lg text-slate-700 mb-6">"Booked my daughter's pediatric appointment online at midnight and got a slot for 9am the next day. The waiting room barely mattered — we were seen right on time."</p>
+              <div class="flex items-center justify-center gap-3">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" class="w-11 h-11 rounded-full object-cover" alt="Patient photo"/>
+                <div class="text-left"><p class="font-semibold text-sm">Rohit Verma</p><p class="text-xs text-slate-500">Hyderabad, TS</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="w-full shrink-0 px-4">
+            <div class="bg-white rounded-2xl p-8 border" style="border-color:var(--line)">
+              <div class="flex justify-center gap-1 mb-4">
+                <i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i><i data-lucide="star" class="w-4 h-4 fill-current" style="color:#F59E0B"></i>
+              </div>
+              <p class="text-lg text-slate-700 mb-6">"After my knee surgery, the physiotherapy team followed up weekly without me having to ask. It's the kind of care that makes recovery feel less lonely."</p>
+              <div class="flex items-center justify-center gap-3">
+                <img src="https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&w=100&q=80" class="w-11 h-11 rounded-full object-cover" alt="Patient photo"/>
+                <div class="text-left"><p class="font-semibold text-sm">Meena Iyer</p><p class="text-xs text-slate-500">Chennai, TN</p></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="flex justify-center gap-2 mt-6" id="testimonialDots"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ARTICLES ============ -->
+<section class="py-24">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="max-w-2xl mb-14 reveal">
+      <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">Health library</p>
+      <h2 class="font-display font-semibold text-3xl md:text-4xl">Health Tips &amp; Latest Articles</h2>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="reveal card-hover rounded-2xl overflow-hidden border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=600&q=80" class="w-full h-44 object-cover" alt="Fresh vegetables for a diabetes-friendly diet"/>
+        <div class="p-5">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2"><span class="font-mono uppercase" style="color:var(--teal)">Nutrition</span>·<span>June 28, 2026</span></div>
+          <h3 class="font-semibold mb-2">Preventing Diabetes: Small Habits, Big Impact</h3>
+          <p class="text-sm text-slate-600 mb-4">Simple daily changes that lower long-term risk, backed by our endocrinology team.</p>
+          <a href="#" class="text-sm font-semibold" style="color:var(--primary)">Read More →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=600&q=80" class="w-full h-44 object-cover" alt="Heart health illustration"/>
+        <div class="p-5">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2"><span class="font-mono uppercase" style="color:var(--teal)">Cardiology</span>·<span>June 20, 2026</span></div>
+          <h3 class="font-semibold mb-2">Five Heart Health Habits Cardiologists Follow</h3>
+          <p class="text-sm text-slate-600 mb-4">What our specialists actually do to protect their own hearts.</p>
+          <a href="#" class="text-sm font-semibold" style="color:var(--primary)">Read More →</a>
+        </div>
+      </div>
+      <div class="reveal card-hover rounded-2xl overflow-hidden border" style="border-color:var(--line)">
+        <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=600&q=80" class="w-full h-44 object-cover" alt="Person meditating outdoors"/>
+        <div class="p-5">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2"><span class="font-mono uppercase" style="color:var(--teal)">Wellness</span>·<span>June 12, 2026</span></div>
+          <h3 class="font-semibold mb-2">Mental Wellness: When to Talk to Someone</h3>
+          <p class="text-sm text-slate-600 mb-4">Signs it's time to reach out, and how our counseling team can help.</p>
+          <a href="#" class="text-sm font-semibold" style="color:var(--primary)">Read More →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EMERGENCY BANNER ============ -->
+<section id="emergency" class="py-14" style="background:var(--emergency)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 flex flex-wrap items-center justify-between gap-8">
+    <div class="flex items-center gap-4 text-white">
+      <span class="w-3 h-3 rounded-full bg-white blip"></span>
+      <div>
+        <p class="font-display font-semibold text-2xl md:text-3xl">Medical emergency? We're here — 24×7.</p>
+        <p class="text-white/85 mt-1">Ambulance dispatch available across the city, every day of the year.</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="text-white text-right">
+        <p class="text-xs uppercase font-mono tracking-widest text-white/70">Emergency Line</p>
+        <p class="font-display font-semibold text-2xl">+91 1800-123-4567</p>
+      </div>
+      <a href="tel:+911800123456" class="bg-white rounded-full px-6 py-3.5 font-semibold flex items-center gap-2" style="color:var(--emergency)">
+        <i data-lucide="phone-call" class="w-4.5 h-4.5"></i> Call Now
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section id="contact" class="py-24">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 grid lg:grid-cols-2 gap-14">
+    <div class="reveal">
+      <p class="font-mono text-xs tracking-widest uppercase mb-3" style="color:var(--teal)">Get in touch</p>
+      <h2 class="font-display font-semibold text-3xl md:text-4xl mb-8">Visit or Reach Us</h2>
+
+      <div class="space-y-5 mb-8">
+        <div class="flex gap-4">
+          <i data-lucide="map-pin" class="w-5 h-5 mt-0.5" style="color:var(--primary)"></i>
+          <div><p class="font-medium">Address</p><p class="text-sm text-slate-600">142 Ring Road, SSGC Health Campus, Nellore, Andhra Pradesh 524001</p></div>
+        </div>
+        <div class="flex gap-4">
+          <i data-lucide="phone" class="w-5 h-5 mt-0.5" style="color:var(--primary)"></i>
+          <div><p class="font-medium">Phone</p><p class="text-sm text-slate-600">+91 861-234-5678</p></div>
+        </div>
+        <div class="flex gap-4">
+          <i data-lucide="mail" class="w-5 h-5 mt-0.5" style="color:var(--primary)"></i>
+          <div><p class="font-medium">Email</p><p class="text-sm text-slate-600">care@ssgchospital.in</p></div>
+        </div>
+        <div class="flex gap-4">
+          <i data-lucide="clock" class="w-5 h-5 mt-0.5" style="color:var(--primary)"></i>
+          <div><p class="font-medium">Working Hours</p><p class="text-sm text-slate-600">OPD: Mon–Sat, 8:00 AM – 8:00 PM · Emergency: 24×7</p></div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl overflow-hidden border h-56" style="border-color:var(--line)">
+        <iframe title="Hospital location map" class="w-full h-full" style="border:0" loading="lazy"
+          src="https://www.google.com/maps?q=Nellore,Andhra+Pradesh&output=embed"></iframe>
+      </div>
+    </div>
+
+    <form id="contactForm" class="reveal rounded-2xl border p-8" style="border-color:var(--line)">
+      <h3 class="font-display font-semibold text-xl mb-6">Send Us a Message</h3>
+      <div class="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="text-sm font-medium block mb-1.5" for="cf-name">Name</label>
+          <input id="cf-name" required class="w-full rounded-lg border px-4 py-2.5 text-sm" style="border-color:var(--line)" placeholder="Your full name" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1.5" for="cf-phone">Phone</label>
+          <input id="cf-phone" required class="w-full rounded-lg border px-4 py-2.5 text-sm" style="border-color:var(--line)" placeholder="+91 00000 00000" />
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="text-sm font-medium block mb-1.5" for="cf-email">Email</label>
+        <input id="cf-email" type="email" required class="w-full rounded-lg border px-4 py-2.5 text-sm" style="border-color:var(--line)" placeholder="you@example.com" />
+      </div>
+      <div class="mb-6">
+        <label class="text-sm font-medium block mb-1.5" for="cf-message">Message</label>
+        <textarea id="cf-message" required rows="4" class="w-full rounded-lg border px-4 py-2.5 text-sm" style="border-color:var(--line)" placeholder="How can we help?"></textarea>
+      </div>
+      <button type="submit" class="btn-primary w-full rounded-full py-3 font-semibold">Submit</button>
+      <p id="cf-success" class="hidden text-sm mt-3 font-medium" style="color:var(--teal)">Thanks — we'll get back to you within one business day.</p>
+    </form>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer style="background:var(--ink)" class="text-white pt-16 pb-8">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+    <div>
+      <div class="flex items-center gap-2.5 mb-4">
+        <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="19" stroke="#2BB3A3" stroke-width="2"/>
+          <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <p class="font-display font-semibold text-lg">SSGC</p>
+      </div>
+      <p class="text-sm text-white/60">Advanced healthcare with a human touch — trusted by our community since 2011.</p>
+    </div>
+    <div>
+      <p class="font-semibold mb-4 text-sm uppercase tracking-wide text-white/50">Quick Links</p>
+      <ul class="space-y-2.5 text-sm text-white/75">
+        <li><a href="#home" class="hover:text-white">Home</a></li>
+        <li><a href="#about" class="hover:text-white">About Us</a></li>
+        <li><a href="#doctors" class="hover:text-white">Doctors</a></li>
+        <li><a href="#appointment" class="hover:text-white">Book Appointment</a></li>
+        <li><a href="#contact" class="hover:text-white">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="font-semibold mb-4 text-sm uppercase tracking-wide text-white/50">Departments</p>
+      <ul class="space-y-2.5 text-sm text-white/75">
+        <li><a href="#departments" class="hover:text-white">Cardiology</a></li>
+        <li><a href="#departments" class="hover:text-white">Neurology</a></li>
+        <li><a href="#departments" class="hover:text-white">Orthopedics</a></li>
+        <li><a href="#departments" class="hover:text-white">Pediatrics</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="font-semibold mb-4 text-sm uppercase tracking-wide text-white/50">Stay Updated</p>
+      <p class="text-sm text-white/60 mb-4">Health tips, delivered monthly.</p>
+      <form class="flex gap-2 mb-5">
+        <input type="email" placeholder="Email address" class="flex-1 rounded-full px-4 py-2 text-sm text-slate-800" />
+        <button type="submit" class="rounded-full px-4 py-2" style="background:var(--teal)"><i data-lucide="send" class="w-4 h-4 text-white"></i></button>
+      </form>
+      <div class="flex gap-3">
+        <a href="#" aria-label="Facebook" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"><i data-lucide="facebook" class="w-4 h-4"></i></a>
+        <a href="#" aria-label="Instagram" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"><i data-lucide="instagram" class="w-4 h-4"></i></a>
+        <a href="#" aria-label="LinkedIn" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"><i data-lucide="linkedin" class="w-4 h-4"></i></a>
+      </div>
+    </div>
+  </div>
+  <div class="max-w-7xl mx-auto px-5 md:px-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
+    <p>© 2026  SSGC Hospital. All rights reserved.</p>
+    <div class="flex gap-5">
+      <a href="#" class="hover:text-white">Privacy Policy</a>
+      <a href="#" class="hover:text-white">Terms &amp; Conditions</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.lucide) lucide.createIcons();
+
+  // sticky nav
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', function(){
+    if (window.scrollY > 40) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
+  });
+
+  // mobile menu
+  const menuBtn = document.getElementById('menuBtn');
+  const closeMenuBtn = document.getElementById('closeMenuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const overlay = document.getElementById('menuOverlay');
+  function openMenu(){ mobileMenu.classList.add('open'); overlay.classList.remove('hidden'); }
+  function closeMenu(){ mobileMenu.classList.remove('open'); overlay.classList.add('hidden'); }
+  menuBtn.addEventListener('click', openMenu);
+  closeMenuBtn.addEventListener('click', closeMenu);
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('.mobile-link').forEach(a => a.addEventListener('click', closeMenu));
+
+  // reveal on scroll
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => io.observe(el));
+
+  // pulse line draw
+  document.querySelectorAll('.pulse-path').forEach(p => {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ e.target.classList.add('drawn'); obs.unobserve(e.target); } });
+    }, { threshold: 0.4 });
+    obs.observe(p);
+  });
+
+  // animated counters
+  const counters = document.querySelectorAll('.counter');
+  const counterObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseInt(el.getAttribute('data-target'), 10);
+      const duration = 1400;
+      const start = performance.now();
+      function tick(now){
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.floor(eased * target).toLocaleString();
+        if (progress < 1) requestAnimationFrame(tick);
+        else el.textContent = target.toLocaleString();
+      }
+      requestAnimationFrame(tick);
+      counterObs.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(c => counterObs.observe(c));
+
+  // testimonial carousel
+  const track = document.getElementById('testimonialSlides');
+  const slides = track ? track.children.length : 0;
+  const dotsWrap = document.getElementById('testimonialDots');
+  let current = 0;
+  for (let i = 0; i < slides; i++){
+    const dot = document.createElement('button');
+    dot.className = 'w-2.5 h-2.5 rounded-full';
+    dot.style.background = i === 0 ? 'var(--primary)' : '#CBD5E1';
+    dot.setAttribute('aria-label', 'Go to testimonial ' + (i+1));
+    dot.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(dot);
+  }
+  function goTo(i){
+    current = i;
+    track.style.transform = `translateX(-${i * 100}%)`;
+    Array.from(dotsWrap.children).forEach((d, idx) => {
+      d.style.background = idx === i ? 'var(--primary)' : '#CBD5E1';
+    });
+  }
+  setInterval(() => { goTo((current + 1) % slides); }, 5500);
+
+  // contact form (demo submit)
+  const form = document.getElementById('contactForm');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    document.getElementById('cf-success').classList.remove('hidden');
+    form.reset();
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — SSGC Hospital</title>
+<meta name="description" content="SSGC Hospital admin dashboard with KPIs, analytics, module navigation and audit log." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3; --teal2:#1A9E8F;
+    --bg:#FFFFFF; --bg-soft:#F8FAFC; --accent:#2563EB;
+    --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706;
+    --violet:#7C3AED; --green:#059669; --pink:#DB2777;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif;font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* buttons */
+  .btn-ghost{color:var(--ink);transition:all .2s ease;border:none;background:none;cursor:pointer;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+
+  /* chips */
+  .chip{border:1px solid var(--line);background:white;font-size:11px;}
+
+  /* card hover */
+  .card-hover{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;}
+  .card-hover:hover{transform:translateY(-3px);box-shadow:0 16px 32px -18px rgba(15,76,129,.22);border-color:var(--teal);}
+
+  /* avatar */
+  .avatar{width:38px;height:38px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:13px;}
+
+  /* tables */
+  table thead th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#64748B;font-weight:600;}
+  table tbody tr{transition:background-color .15s ease;}
+  table tbody tr:hover{background:#F8FAFC;}
+  .status-dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+
+  /* KPI cards */
+  .kpi-card{
+    background:white;border-radius:20px;border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:14px;
+    transition:transform .22s,box-shadow .22s,border-color .22s;
+  }
+  .kpi-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px -14px rgba(0,0,0,.15);border-color:var(--teal);}
+  .kpi-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .kpi-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
+  .kpi-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;line-height:1;}
+  .kpi-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;}
+  .trend-up{background:#DCFCE7;color:#16A34A;}
+  .trend-down{background:#FEF2F2;color:#DC2626;}
+  .trend-neutral{background:#F1F5F9;color:#64748B;}
+
+  /* module cards */
+  .mod-card{
+    background:white;border-radius:20px;border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:14px;text-decoration:none;color:inherit;
+    transition:transform .22s,box-shadow .22s,border-color .22s;
+  }
+  .mod-card:hover{transform:translateY(-3px);box-shadow:0 16px 32px -18px rgba(15,76,129,.22);border-color:var(--teal);}
+  .mod-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* section headings */
+  .section-head{display:flex;align-items:center;gap:9px;margin-bottom:18px;}
+  .section-head-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .section-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--ink);}
+
+  /* chart panels */
+  .chart-panel{background:white;border-radius:20px;border:1px solid var(--line);padding:24px;}
+  .chart-header{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .chart-header-icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .chart-title{font-size:14px;font-weight:700;color:var(--ink);}
+  .chart-sub{font-size:12px;color:#64748B;margin-bottom:18px;padding-left:40px;}
+
+  /* progress bars */
+  .perf-row{margin-bottom:12px;}
+  .perf-row:last-child{margin-bottom:0;}
+  .perf-meta{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
+  .perf-bar-bg{height:8px;border-radius:999px;background:#E2E8F0;overflow:hidden;}
+  .perf-bar-fill{height:100%;border-radius:999px;transition:width .6s ease;}
+
+  /* no-show rows */
+  .ns-row{display:flex;align-items:center;gap:12px;background:var(--bg-soft);border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
+  .ns-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#FEF2F2;}
+
+  /* audit rows */
+  .audit-action-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* scroll */
+  .scroll-y{max-height:260px;overflow-y:auto;}
+  .scroll-y::-webkit-scrollbar{width:4px;}
+  .scroll-y::-webkit-scrollbar-track{background:transparent;}
+  .scroll-y::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─────────────────────────────── -->
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div style="max-width:1280px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <a href="home.html" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div style="line-height:1.1;">
+        <p class="font-display" style="font-size:16px;font-weight:700;">SSGC Hospital</p>
+        <p class="font-mono" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);">Dashboard &amp; Analytics</p>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="sessionChip" style="display:none;align-items:center;gap:8px;border:1px solid var(--line);background:white;border-radius:999px;padding:6px 14px 6px 6px;font-size:11px;"></div>
+      <button id="logoutBtn" class="btn-ghost" style="font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;display:flex;align-items:center;gap:6px;">
+        <i data-lucide="log-out" style="width:15px;height:15px;"></i>
+        <span>Sign out</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1280px;margin:0 auto;padding:32px;">
+
+  <!-- ─── GREETING ──────────────────────────── -->
+  <div style="margin-bottom:20px;">
+    <p class="font-display" style="font-size:26px;font-weight:700;" id="greeting">Welcome back</p>
+    <p style="font-size:13px;color:#64748B;margin-top:4px;" id="dateLine"></p>
+  </div>
+
+  <!-- ─── ROLE BANNER ──────────────────────── -->
+  <div id="roleBanner" style="display:none;border-radius:16px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;"></div>
+
+  <!-- ─── KPI ROW ───────────────────────────── -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:36px;">
+
+    <!-- Total Patients -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Total Patients</p>
+        <span style="font-size:26px;line-height:1;">🧑‍⚕️</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--primary);" id="kpiPatients">0</p>
+      </div>
+    </div>
+
+    <!-- Appointments Today -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Appointments Today</p>
+        <span style="font-size:26px;line-height:1;">📅</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--accent);" id="kpiAppts">0</p>
+      </div>
+    </div>
+
+    <!-- Revenue -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Revenue (Month)</p>
+        <span style="font-size:26px;line-height:1;">💰</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--teal);" id="kpiRevenue">Rs. 0</p>
+      </div>
+    </div>
+
+    <!-- Bed Occupancy -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Bed Occupancy</p>
+        <span style="font-size:26px;line-height:1;">🛏️</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--amber);" id="kpiOccupancy">0%</p>
+      </div>
+    </div>
+
+    <!-- Active Admissions -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Active Admissions</p>
+        <span style="font-size:26px;line-height:1;">🏥</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--violet);" id="kpiAdmissions">0</p>
+      </div>
+    </div>
+
+    <!-- Pending Bills -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Pending Bills</p>
+        <span style="font-size:26px;line-height:1;">🧾</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--emergency);" id="kpiPending">0</p>
+      </div>
+    </div>
+
+    <!-- Lab Tests Today -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Lab Tests Today</p>
+        <span style="font-size:26px;line-height:1;">🔬</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:#16A34A;" id="kpiLab">0</p>
+      </div>
+    </div>
+
+    <!-- Low Stock Alerts -->
+    <div class="kpi-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:.04em;text-transform:uppercase;">Stock Alerts</p>
+        <span style="font-size:26px;line-height:1;">💊</span>
+      </div>
+      <div class="kpi-bottom">
+        <p class="kpi-value" style="color:var(--amber);" id="kpiStock">0</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── MODULE HUB ────────────────────────── -->
+  <div class="section-head">
+    <span style="font-size:22px;">🗂️</span>
+    <p class="section-title">Modules</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:40px;" id="moduleGrid"></div>
+
+  <!-- ─── ANALYTICS ─────────────────────────── -->
+  <div class="section-head">
+    <span style="font-size:22px;">📊</span>
+    <p class="section-title">Reports &amp; Analytics</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin-bottom:20px;">
+    <!-- Revenue Chart -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <span style="font-size:20px;">💰</span>
+        <p class="chart-title">Revenue — Last 6 Months</p>
+      </div>
+      <p class="chart-sub">Aggregated from paid invoices in Billing &amp; Payments.</p>
+      <svg id="revenueChart" viewBox="0 0 500 180" style="width:100%;height:180px;"></svg>
+    </div>
+    <!-- Patient Inflow Chart -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <span style="font-size:20px;">📈</span>
+        <p class="chart-title">Patient Inflow — Last 7 Days</p>
+      </div>
+      <p class="chart-sub">Appointments booked per day, from Appointment Management.</p>
+      <svg id="inflowChart" viewBox="0 0 500 180" style="width:100%;height:180px;"></svg>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin-bottom:40px;">
+    <!-- Doctor Performance -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <span style="font-size:20px;">🩺</span>
+        <p class="chart-title">Doctor Performance</p>
+      </div>
+      <p class="chart-sub">Average feedback rating per doctor.</p>
+      <div id="doctorPerf" class="scroll-y" style="padding-right:4px;"></div>
+    </div>
+    <!-- No-Show Watchlist -->
+    <div class="chart-panel">
+      <div class="chart-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">⚠️</span>
+          <p class="chart-title">No-Show Risk Watchlist</p>
+        </div>
+        <span class="chip" style="border-radius:999px;padding:4px 10px;display:inline-flex;align-items:center;gap:4px;color:var(--violet);font-size:11px;font-weight:600;">✨ ML-flagged</span>
+      </div>
+      <p class="chart-sub">High-risk upcoming appointments flagged by the no-show model.</p>
+      <div id="noShowList" class="scroll-y" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ─── AUDIT LOG ──────────────────────────── -->
+  <div class="section-head">
+    <span style="font-size:22px;">🛡️</span>
+    <p class="section-title">Audit Log</p>
+    <span class="chip" style="border-radius:999px;padding:5px 12px;font-size:11px;margin-left:auto;">Who accessed / changed what, and when</span>
+  </div>
+  <div style="background:white;border-radius:20px;border:1px solid var(--line);overflow:hidden;margin-bottom:40px;">
+    <div class="scroll-y" style="max-height:300px;">
+      <table style="width:100%;text-align:left;border-collapse:collapse;font-size:13px;">
+        <thead style="position:sticky;top:0;background:white;z-index:1;">
+          <tr style="border-bottom:1px solid var(--line);">
+            <th style="padding:12px 20px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#64748B;font-weight:600;">Action</th>
+            <th style="padding:12px 20px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#64748B;font-weight:600;">User</th>
+            <th style="padding:12px 20px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#64748B;font-weight:600;">Role</th>
+            <th style="padding:12px 20px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#64748B;font-weight:600;">Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="auditTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) lucide.createIcons();
+
+  /* ── helpers ── */
+  const esc = s => (s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pad2 = n => n.toString().padStart(2,'0');
+  const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; };
+  const money = n => 'Rs. ' + Number(n||0).toLocaleString('en-PK');
+  const loadJSON = (k,fb) => JSON.parse(localStorage.getItem(k)||'null') || fb;
+
+  /* ── session ── */
+  const session = loadJSON('ssgc_session_v1', null);
+  /* ── role guard + session ── */
+  if (!session) { window.location.href = 'login.html'; }
+
+  const ROLE_META = {
+    Admin:        { emoji:'👩‍💼', color:'#0F4C81', bg:'#EFF6FF', desc:'Full system access — all modules enabled' },
+    Doctor:       { emoji:'👨‍⚕️', color:'#0D9488', bg:'#F0FDFA', desc:'Appointments, Patients, EHR, Lab & AI tools' },
+    Nurse:        { emoji:'👩‍⚕️', color:'#DB2777', bg:'#FDF2F8', desc:'Patients, Admissions, Lab & EHR access' },
+    Receptionist: { emoji:'📞', color:'#D97706', bg:'#FFFBEB', desc:'Appointments, Registration & Billing' },
+    Pharmacist:   { emoji:'💊', color:'#059669', bg:'#F0FDF4', desc:'Pharmacy inventory & EHR prescriptions' },
+    Patient:      { emoji:'🤒', color:'#7C3AED', bg:'#F5F3FF', desc:'Your appointments, lab results & health records' },
+  };
+
+  if (session) {
+    const rm = ROLE_META[session.role] || ROLE_META.Admin;
+    document.getElementById('greeting').textContent = `Welcome back, ${session.name.split(' ')[0]} 👋`;
+    const chip = document.getElementById('sessionChip');
+    chip.style.display = 'flex';
+    chip.innerHTML = `
+      <div class="avatar" style="background:var(--primary);width:30px;height:30px;font-size:11px;">${session.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div style="line-height:1.2;">
+        <p style="font-size:12px;font-weight:600;">${esc(session.name)}</p>
+        <p style="font-size:10px;color:#64748B;">${esc(session.role)}</p>
+      </div>`;
+
+    // Role banner
+    const banner = document.getElementById('roleBanner');
+    banner.style.background = rm.bg;
+    banner.style.border = `1px solid ${rm.color}30`;
+    banner.innerHTML = `
+      <span style="font-size:36px;line-height:1;">${rm.emoji}</span>
+      <div style="flex:1;">
+        <p style="font-size:15px;font-weight:700;color:${rm.color};">${esc(session.role)} Portal</p>
+        <p style="font-size:12px;color:#64748B;margin-top:2px;">${rm.desc}</p>
+      </div>
+      <a href="login.html" onclick="localStorage.removeItem('ssgc_session_v1')" style="font-size:12px;font-weight:600;color:${rm.color};text-decoration:none;padding:6px 14px;border:1.5px solid ${rm.color}40;border-radius:999px;white-space:nowrap;">🚪 Sign out</a>`;
+    if (window.lucide) lucide.createIcons();
+  } else {
+    document.getElementById('greeting').textContent = 'Welcome — browsing as guest';
+  }
+  document.getElementById('dateLine').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('ssgc_session_v1');
+    window.location.href = 'login.html';
+  });
+
+  /* ── data ── */
+  const patients  = loadJSON('ssgc_patients_v1', []);
+  const appts     = loadJSON('ssgc_appointments_v1', []);
+  const bills     = loadJSON('ssgc_bills_v1', []);
+  const beds      = loadJSON('ssgc_beds_v1', []);
+  const doctors   = loadJSON('ssgc_doctors_v1', []);
+  const feedback  = loadJSON('ssgc_feedback_v1', []);
+  const audit     = loadJSON('ssgc_audit_v1', []);
+  const medicines = loadJSON('ssgc_medicines_v1', []);
+  const labs      = loadJSON('ssgc_labs_v1', []);
+  const admissions= loadJSON('ssgc_admissions_v1', []);
+
+  const today = todayStr();
+  const thisMonth = today.slice(0,7);
+
+  /* ── KPIs ── */
+  document.getElementById('kpiPatients').textContent   = patients.length;
+  document.getElementById('kpiAppts').textContent      = appts.filter(a => a.date === today).length;
+  const revenueThisMonth = bills.filter(b => b.status==='Paid' && (b.date||'').slice(0,7)===thisMonth).reduce((s,b)=>s+b.total,0);
+  document.getElementById('kpiRevenue').textContent    = money(revenueThisMonth);
+  const occPct = beds.length ? Math.round((beds.filter(b=>b.status==='Occupied').length/beds.length)*100) : 0;
+  document.getElementById('kpiOccupancy').textContent  = occPct + '%';
+  document.getElementById('kpiAdmissions').textContent = admissions.filter(a=>a.status==='Active').length;
+  document.getElementById('kpiPending').textContent    = bills.filter(b=>b.status==='Pending').length;
+  document.getElementById('kpiLab').textContent        = labs.filter(l=>l.date===today).length;
+  const lowStock = medicines.filter(m=>(m.qty||m.stock||0)<20).length;
+  document.getElementById('kpiStock').textContent      = lowStock;
+
+  /* ── modules ── */
+  /* ── modules filtered by role ── */
+  const ROLE_MODULES = {
+    Admin:        ['patient-management.html','appointment-management.html','doctor-staff.html','billing.html','pharmacy.html','lab-diagnostics.html','admission-bed.html','ehr.html','ai-features.html','firebase.html'],
+    Doctor:       ['appointment-management.html','patient-management.html','ehr.html','lab-diagnostics.html','ai-features.html','firebase.html'],
+    Nurse:        ['patient-management.html','appointment-management.html','admission-bed.html','lab-diagnostics.html','ehr.html'],
+    Receptionist: ['appointment-management.html','patient-management.html','billing.html','admission-bed.html'],
+    Pharmacist:   ['pharmacy.html','ehr.html'],
+    Patient:      ['appointment-management.html','lab-diagnostics.html','ehr.html','ai-features.html'],
+  };
+  const allowedHrefs = session ? (ROLE_MODULES[session.role] || ROLE_MODULES.Admin) : ROLE_MODULES.Admin;
+
+  const ALL_MODULES = [
+    { href:'patient-management.html',     emoji:'🧑‍⚕️', title:'Patient Management',        desc:'Registration, records, QR check-in' },
+    { href:'appointment-management.html', emoji:'📅',   title:'Appointments',               desc:'Booking, scheduling, reminders'     },
+    { href:'doctor-staff.html',           emoji:'👨‍⚕️', title:'Doctor & Staff',             desc:'Profiles, shifts, feedback'         },
+    { href:'billing.html',                emoji:'🧾',   title:'Billing & Payments',         desc:'Invoices, insurance, receipts'      },
+    { href:'pharmacy.html',               emoji:'💊',   title:'Pharmacy & Inventory',       desc:'Stock, alerts, prescriptions'       },
+    { href:'lab-diagnostics.html',        emoji:'🔬',   title:'Lab & Diagnostics',          desc:'Test booking, results'              },
+    { href:'admission-bed.html',          emoji:'🛏️',  title:'Admission & Beds',           desc:'Ward allocation, discharge'         },
+    { href:'ehr.html',                    emoji:'📋',   title:'Electronic Health Records',  desc:'History, AI summaries'              },
+    { href:'ai-features.html',            emoji:'🤖',   title:'AI & Telemedicine',          desc:'Symptom checker, video consults'    },
+    { href:'firebase.html',               emoji:'🔥',   title:'Firebase Cloud DB',          desc:'Cloud Firestore sync & telemetry'   },
+  ];
+  const MODULES = ALL_MODULES.filter(m => allowedHrefs.includes(m.href));
+
+  document.getElementById('moduleGrid').innerHTML = MODULES.map(m => `
+    <a href="${m.href}" class="mod-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:32px;line-height:1;">${m.emoji}</span>
+        <span style="font-size:16px;color:#CBD5E1;">↗</span>
+      </div>
+      <div>
+        <p style="font-weight:700;font-size:13.5px;">${m.title}</p>
+        <p style="font-size:12px;color:#64748B;margin-top:3px;">${m.desc}</p>
+      </div>
+    </a>`).join('');
+
+  /* ── charts ── */
+  function drawBarChart(svgId, points, color, viewW=500, viewH=180) {
+    const svg = document.getElementById(svgId);
+    if (!svg) return;
+    const padL=44, padB=28, padT=12, chartW=viewW-padL-12, chartH=viewH-padB-padT;
+    const maxV = Math.max(...points.map(p=>p.value), 1);
+    const gap = chartW / points.length;
+    const barW = gap * 0.55;
+    let bars='', labels='', yLabels='';
+    // y-axis guide lines
+    for (let i=0;i<=4;i++) {
+      const y = padT + chartH - (chartH*i/4);
+      yLabels += `<line x1="${padL}" y1="${y}" x2="${viewW-10}" y2="${y}" stroke="#F1F5F9" stroke-width="1"/>`;
+    }
+    points.forEach((p,i) => {
+      const h = Math.max((p.value/maxV)*chartH, 2);
+      const x = padL + gap*i + (gap-barW)/2;
+      const y = padT + chartH - h;
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="6" fill="${color}" opacity=".85"/>
+               <rect x="${x}" y="${y}" width="${barW}" height="6" rx="3" fill="${color}"/>`;
+      labels += `<text x="${x+barW/2}" y="${viewH-8}" font-size="10" fill="#94A3B8" text-anchor="middle" font-family="Inter,sans-serif">${p.label}</text>`;
+    });
+    svg.innerHTML = yLabels + bars + labels;
+  }
+
+  const monthNames = ['Mar','Apr','May','Jun','Jul','Aug'];
+  const baseRevenue = [180000,205000,192000,240000,265000, revenueThisMonth||230000];
+  drawBarChart('revenueChart', monthNames.map((m,i)=>({label:m,value:baseRevenue[i]})), '#0F4C81');
+
+  const dayNames = [];
+  const inflowByDay = {};
+  for (let i=6;i>=0;i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    dayNames.push({key, label:d.toLocaleDateString('en-US',{weekday:'short'})});
+    inflowByDay[key] = 0;
+  }
+  appts.forEach(a => { if (inflowByDay[a.date]!==undefined) inflowByDay[a.date]++; });
+  const hasReal = Object.values(inflowByDay).some(v=>v>0);
+  drawBarChart('inflowChart', dayNames.map((d,i)=>({label:d.label,value:hasReal?inflowByDay[d.key]:[8,11,9,14,12,6,4][i]})), '#2BB3A3');
+
+  /* ── doctor performance ── */
+  const docList = doctors.length ? doctors : [
+    {id:'DOC-001',name:'Dr. Amina Farooq',  specialization:'Cardiologist'},
+    {id:'DOC-002',name:'Dr. Bilal Sheikh',   specialization:'Neurologist'},
+    {id:'DOC-003',name:'Dr. Sana Malik',     specialization:'Pediatrician'},
+    {id:'DOC-004',name:'Dr. Raza Ahmed',     specialization:'Orthopedic'},
+  ];
+  const perfColors = ['#2563EB','#0D9488','#7C3AED','#D97706'];
+  document.getElementById('doctorPerf').innerHTML = docList.slice(0,6).map((d,idx) => {
+    const fb  = feedback.filter(f=>f.doctorId===d.id);
+    const avg = fb.length ? fb.reduce((a,b)=>a+b.rating,0)/fb.length : 3.8+Math.random()*1.1;
+    const pct = (avg/5)*100;
+    const col = perfColors[idx % perfColors.length];
+    return `
+      <div class="perf-row">
+        <div class="perf-meta">
+          <span style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:6px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0;"></span>
+            ${esc(d.name)}
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${col};font-weight:600;">${avg.toFixed(1)} ★</span>
+        </div>
+        <div class="perf-bar-bg">
+          <div class="perf-bar-fill" style="width:${pct}%;background:${col};"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  /* ── no-show watchlist ── */
+  const flagged = appts.filter(a=>a.noShowRisk==='High'||a.noShowRisk===true).slice(0,5);
+  const displayFlagged = flagged;
+  document.getElementById('noShowList').innerHTML = displayFlagged.length ? displayFlagged.map(a => `
+    <div class="ns-row">
+      <span style="font-size:22px;">🚨</span>
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:13px;font-weight:600;">${esc(a.patientName||a.patient||'Patient')}</p>
+        <p style="font-size:11px;color:#64748B;margin-top:2px;">
+          📆 ${a.date||''} ${a.time?'⏰ '+a.time:''} ${a.doctorName?'👨‍⚕️ '+esc(a.doctorName):''}
+        </p>
+      </div>
+      <span style="background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;">⚠️ High Risk</span>
+    </div>`).join('') : '<p style="font-size:13px;color:#94A3B8;">✅ No high-risk appointments right now.</p>';
+
+  /* ── audit log ── */
+  const ACTION_EMOJI = {
+    'logged in':  '🔐',
+    'logged out': '🚪',
+    'added':      '➕',
+    'edited':     '✏️',
+    'deleted':    '🗑️',
+    'viewed':     '👁️',
+    'booked':     '📅',
+    'cancelled':  '❌',
+    'paid':       '💳',
+    'uploaded':   '📤',
+    'discharged': '🏠',
+    'admitted':   '🛏️',
+  };
+
+  function getActionEmoji(action) {
+    if (!action) return '🔵';
+    const lower = action.toLowerCase();
+    for (const [key, emoji] of Object.entries(ACTION_EMOJI)) {
+      if (lower.includes(key)) return emoji;
+    }
+    return '🔵';
+  }
+
+  const displayAudit = audit.length ? audit : [];
+
+  document.getElementById('auditTbody').innerHTML = displayAudit.length ? displayAudit.map(a => `
+      <tr style="border-bottom:1px solid var(--line);">
+        <td style="padding:12px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:18px;">${getActionEmoji(a.action)}</span>
+            <span style="font-weight:600;font-size:13px;">${esc(a.action)}</span>
+          </div>
+        </td>
+        <td style="padding:12px 20px;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <div style="width:26px;height:26px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0;">
+              ${(a.who||'?').split(' ').map(w=>w[0]).slice(0,2).join('')}
+            </div>
+            <span style="font-size:13px;font-weight:500;">${esc(a.who)}</span>
+          </div>
+        </td>
+        <td style="padding:12px 20px;">
+          <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;background:#F1F5F9;color:#475569;">${esc(a.role)}</span>
+        </td>
+        <td style="padding:12px 20px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A3B8;">${esc(a.at)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="padding:24px 20px;text-align:center;color:#94A3B8;font-size:13px;">🔒 No audit activity recorded yet in this browser session.</td></tr>`;
+
+}); // end DOMContentLoaded
+</script>
+</body>
+</html>

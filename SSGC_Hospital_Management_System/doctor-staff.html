@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Doctor &amp; Staff Management — SSGC Hospital</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-static/0.383.0/lucide.min.js" defer></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --ink:#0B2A43; --primary:#0F4C81; --teal:#2BB3A3; --bg:#FFFFFF; --bg-soft:#F8FAFC;
+    --accent:#2563EB; --line:#E2E8F0; --emergency:#DC2626; --amber:#D97706; --violet:#7C3AED;
+  }
+  html{scroll-behavior:smooth;}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--bg-soft);}
+  .font-display{font-family:'Fraunces',serif; font-optical-sizing:auto;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  ::selection{background:var(--teal); color:white;}
+  .card-hover{transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;}
+  .card-hover:hover{transform:translateY(-3px); box-shadow:0 16px 32px -18px rgba(15,76,129,0.22); border-color:var(--teal);}
+  .btn-primary{background:var(--primary); color:white; transition:all .2s ease;}
+  .btn-primary:hover{background:#0c3d68; transform:translateY(-1px);}
+  .btn-outline{border:1.5px solid var(--primary); color:var(--primary); transition:all .25s ease; background:white;}
+  .btn-outline:hover{background:var(--primary); color:white;}
+  .btn-teal{background:var(--teal); color:white; transition:all .25s ease;}
+  .btn-teal:hover{background:#239484;}
+  .btn-ghost{color:var(--ink); transition:all .2s ease;}
+  .btn-ghost:hover{background:var(--bg-soft);}
+  .chip{border:1px solid var(--line); background:white; font-size:11px;}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(43,179,163,0.15);}
+  a:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .modal-backdrop{background:rgba(11,42,67,0.55); backdrop-filter:blur(2px);}
+  .modal-panel{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+  .tab-btn{color:#64748B; border-bottom:2px solid transparent; transition:all .2s ease;}
+  .tab-btn.active{color:var(--primary); border-bottom-color:var(--teal); font-weight:600;}
+  .toast{animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+  .avatar{width:52px; height:52px; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-weight:700; color:white; font-family:'Fraunces',serif; font-size:18px;}
+  .star{color:#E2E8F0;}
+  .star.filled{color:#D97706;}
+  table thead th{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#64748B; font-weight:600;}
+  table tbody tr{transition:background-color .15s ease;}
+  table tbody tr:hover{background:#F8FAFC;}
+  .status-dot{width:7px;height:7px;border-radius:999px;display:inline-block;}
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:#CBD5E1; border-radius:999px;}
+  @media (prefers-reduced-motion: reduce){ .modal-panel{animation:none;} .toast{animation:none;} }
+</style>
+</head>
+<body class="antialiased">
+<div id="rbacBar" style="background:#0F4C81;color:white;font-family:Inter,sans-serif;font-size:12px;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:999;">
+  <span id="rbacInfo" style="display:flex;align-items:center;gap:8px;font-weight:600;"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="dashboard.html" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:11px;">&#8592; My Portal</a>
+    <a id="rbacSignOut" href="login.html" style="color:rgba(255,255,255,.85);text-decoration:none;background:rgba(255,255,255,.15);padding:4px 12px;border-radius:999px;font-size:11px;">Sign out</a>
+  </div>
+</div>
+<script>
+(function(){
+  var s=window._sess||JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var EMOJIS={Admin:'👩‍💼',Doctor:'👨‍⚕️',Nurse:'👩‍⚕️',Receptionist:'📞',Pharmacist:'💊',Patient:'🤒'};
+  if(s){
+    var el=document.getElementById('rbacInfo');
+    if(el) el.innerHTML=(EMOJIS[s.role]||'👤')+' '+s.name+' &nbsp;<span style="opacity:.6;font-weight:400;">'+s.role+'</span>';
+    var so=document.getElementById('rbacSignOut');
+    if(so) so.addEventListener('click',function(){localStorage.removeItem('ssgc_session_v1');});
+  }
+})();
+</script>
+
+<header id="navbar" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b" style="border-color:var(--line)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+    <a href="home.html" class="flex items-center gap-2.5" aria-label="Back to SSGC Hospital home page">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#0F4C81" stroke-width="2"/>
+        <path d="M6 20h6l3-8 5 16 3-11 2 3h9" stroke="#2BB3A3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="leading-none">
+        <p class="font-display font-semibold text-base" style="color:var(--ink)">SSGC Hospital</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase" style="color:var(--teal)">Doctor &amp; Staff Management</p>
+      </div>
+    </a>
+    <div class="flex items-center gap-2 md:gap-3">
+      <a href="dashboard.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+      </a>
+      <a href="appointment-management.html" class="btn-ghost hidden md:flex items-center gap-1.5 text-sm font-medium px-3 py-2.5 rounded-full">
+        <i data-lucide="calendar-days" class="w-4 h-4"></i> Appointments
+      </a>
+      <button id="openAddStaffBtn" class="btn-outline text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2">
+        <i data-lucide="user-cog" class="w-4 h-4"></i><span class="hidden sm:inline">Add Staff</span><span class="sm:hidden">Staff</span>
+      </button>
+      <button id="openAddDoctorBtn" class="btn-primary text-sm font-semibold px-4 py-2.5 rounded-full flex items-center gap-2">
+        <i data-lucide="stethoscope" class="w-4 h-4"></i><span class="hidden sm:inline">Add Doctor</span><span class="sm:hidden">New</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 md:px-8 py-8">
+
+  <!-- STATS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Active Doctors</p>
+      <p class="font-mono text-2xl font-semibold" id="statDoctors" style="color:var(--primary)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Total Staff</p>
+      <p class="font-mono text-2xl font-semibold" id="statStaff" style="color:var(--primary)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Present Today</p>
+      <p class="font-mono text-2xl font-semibold" id="statPresent" style="color:var(--teal)">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <p class="text-xs text-slate-500 mb-1">Avg. Doctor Rating</p>
+      <p class="font-mono text-2xl font-semibold" id="statRating" style="color:var(--amber)">—</p>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="flex gap-6 border-b mb-6 overflow-x-auto" style="border-color:var(--line)">
+    <button class="tab-btn active px-1 pb-3 text-sm whitespace-nowrap" data-tab="doctors">Doctors</button>
+    <button class="tab-btn px-1 pb-3 text-sm whitespace-nowrap" data-tab="staff">Staff Directory</button>
+    <button class="tab-btn px-1 pb-3 text-sm whitespace-nowrap" data-tab="attendance">Attendance &amp; Shifts</button>
+    <button class="tab-btn px-1 pb-3 text-sm whitespace-nowrap" data-tab="feedback">Feedback &amp; Ratings</button>
+  </div>
+
+  <!-- DOCTORS TAB -->
+  <section id="tab-doctors">
+    <div id="doctorGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+  </section>
+
+  <!-- STAFF TAB -->
+  <section id="tab-staff" class="hidden">
+    <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-left border-b" style="border-color:var(--line)">
+            <th class="px-5 py-3">Staff</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Department</th>
+            <th class="px-5 py-3">Phone</th><th class="px-5 py-3">Status</th><th class="px-5 py-3"></th>
+          </tr></thead>
+          <tbody id="staffTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ATTENDANCE TAB -->
+  <section id="tab-attendance" class="hidden">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold">Today — <span id="attendanceDate" class="font-mono text-sm font-normal text-slate-500"></span></p>
+      <span class="chip rounded-full px-3 py-1.5 text-xs font-medium" style="color:var(--primary)">Shift tracking is simulated for this demo</span>
+    </div>
+    <div class="bg-white rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-left border-b" style="border-color:var(--line)">
+            <th class="px-5 py-3">Staff</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Check-in</th>
+            <th class="px-5 py-3">Check-out</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Action</th>
+          </tr></thead>
+          <tbody id="attendanceTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK TAB -->
+  <section id="tab-feedback" class="hidden">
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4" id="feedbackList"></div>
+      <div class="bg-white rounded-2xl border p-5 h-fit" style="border-color:var(--line)">
+        <p class="font-display font-semibold mb-3">Submit Post-Consultation Feedback</p>
+        <form id="feedbackForm" class="space-y-3">
+          <div>
+            <label class="text-xs font-medium text-slate-600">Doctor</label>
+            <select id="fbDoctor" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"></select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">Rating</label>
+            <div class="flex gap-1 mt-1" id="fbStars"></div>
+            <input type="hidden" id="fbRating" value="5"/>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">Patient Initials</label>
+            <input id="fbPatient" required maxlength="6" placeholder="e.g. A.R." class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">Comment</label>
+            <textarea id="fbComment" rows="3" required placeholder="Share your experience..." class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm resize-none" style="border-color:var(--line)"></textarea>
+          </div>
+          <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm">Submit Feedback</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- DOCTOR MODAL -->
+<div id="doctorModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold" id="doctorModalTitle">Add Doctor</p>
+      <button class="doctorModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="doctorForm" class="space-y-3">
+      <input type="hidden" id="docId"/>
+      <div><label class="text-xs font-medium text-slate-600">Full Name</label>
+        <input id="docName" required placeholder="Dr. Jane Smith" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Specialization / Department</label>
+        <input id="docDept" required placeholder="Cardiology" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-medium text-slate-600">Shift Start</label>
+          <input id="docStart" type="time" required value="09:00" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+        <div><label class="text-xs font-medium text-slate-600">Shift End</label>
+          <input id="docEnd" type="time" required value="17:00" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-600">Working Days</label>
+        <div class="flex gap-1.5 mt-1.5" id="docDaysPicker"></div>
+      </div>
+      <div><label class="text-xs font-medium text-slate-600">Phone</label>
+        <input id="docPhone" placeholder="0300-1234567" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm mt-2">Save Doctor</button>
+    </form>
+  </div>
+</div>
+
+<!-- STAFF MODAL -->
+<div id="staffModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="modal-panel bg-white rounded-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-lg font-semibold">Add Staff Member</p>
+      <button class="staffModalClose btn-ghost p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="staffForm" class="space-y-3">
+      <div><label class="text-xs font-medium text-slate-600">Full Name</label>
+        <input id="stfName" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Role</label>
+        <select id="stfRole" required class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)">
+          <option value="Admin">Admin</option>
+          <option value="Nurse">Nurse</option>
+          <option value="Receptionist">Receptionist</option>
+          <option value="Pharmacist">Pharmacist</option>
+          <option value="Lab Technician">Lab Technician</option>
+        </select></div>
+      <div><label class="text-xs font-medium text-slate-600">Department</label>
+        <input id="stfDept" placeholder="e.g. Front Desk" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <div><label class="text-xs font-medium text-slate-600">Phone</label>
+        <input id="stfPhone" placeholder="0300-1234567" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm" style="border-color:var(--line)"/></div>
+      <button class="btn-primary w-full rounded-xl py-2.5 font-semibold text-sm mt-2">Save Staff Member</button>
+    </form>
+  </div>
+</div>
+
+<div id="toastRoot" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2"></div>
+
+<script>
+/* == ROLE GUARD == */
+(function(){
+  var s=JSON.parse(localStorage.getItem('ssgc_session_v1')||'null');
+  var ok=['Admin','Doctor'];
+  if(!s){window.location.href='login.html';return;}
+  if(!ok.includes(s.role)){alert('Access restricted for '+s.role+' role.');window.location.href='dashboard.html';return;}
+  window._sess=s;
+})();
+/* ================ */
+
+lucide && lucide.createIcons && lucide.createIcons();
+document.addEventListener('DOMContentLoaded', () => window.lucide && lucide.createIcons());
+
+const DOCTORS_KEY = 'ssgc_doctors_v1';
+const STAFF_KEY = 'ssgc_staff_v1';
+const ATTEND_KEY = 'ssgc_attendance_v1';
+const FEEDBACK_KEY = 'ssgc_feedback_v1';
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const AVATAR_COLORS = ['#0F4C81','#2BB3A3','#7C3AED','#D97706','#DC2626','#0EA5E9'];
+
+let doctors = [], staff = [], attendance = [], feedback = [];
+
+function pad2(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function nowHM(){ const d=new Date(); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name){ return (name||'').replace('Dr.','').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function colorFor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))>>>0; return AVATAR_COLORS[h%AVATAR_COLORS.length]; }
+function toast(msg, icon='check-circle'){
+  const el = document.createElement('div');
+  el.className = 'toast bg-white border rounded-xl shadow-lg px-4 py-3 flex items-center gap-2 text-sm';
+  el.style.borderColor = 'var(--line)';
+  el.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4" style="color:var(--teal)"></i>${escapeHtml(msg)}`;
+  document.getElementById('toastRoot').appendChild(el);
+  lucide.createIcons();
+  setTimeout(()=>el.remove(), 3000);
+}
+
+function seedDoctors(){
+  return [
+    { id:'DOC-001', name:'Dr. Amina Farooq', dept:'Cardiology', days:[1,2,3,4,5], start:'09:00', end:'14:00', slotMins:30, leaves:[], phone:'0301-2223334' },
+    { id:'DOC-002', name:'Dr. Bilal Sheikh', dept:'Neurology', days:[1,3,5], start:'10:00', end:'16:00', slotMins:20, leaves:[], phone:'0302-4445556' },
+    { id:'DOC-003', name:'Dr. Sana Malik', dept:'Orthopedics', days:[2,4,6], start:'11:00', end:'17:00', slotMins:30, leaves:[], phone:'0303-6667778' },
+    { id:'DOC-004', name:'Dr. Omar Raza', dept:'Pediatrics', days:[1,2,3,4,5,6], start:'09:00', end:'13:00', slotMins:15, leaves:[], phone:'0304-8889990' }
+  ];
+}
+function seedStaff(){
+  return [
+    { id:'STF-001', name:'Nadia Hussain', role:'Nurse', dept:'ICU', phone:'0311-1111222', status:'Active' },
+    { id:'STF-002', name:'Farhan Sheikh', role:'Receptionist', dept:'Front Desk', phone:'0312-2223334', status:'Active' },
+    { id:'STF-003', name:'Zainab Tariq', role:'Pharmacist', dept:'Pharmacy', phone:'0313-3334445', status:'Active' },
+    { id:'STF-004', name:'Usman Aslam', role:'Lab Technician', dept:'Diagnostics', phone:'0314-4445556', status:'On Leave' },
+    { id:'STF-005', name:'Hira Baig', role:'Admin', dept:'Administration', phone:'0315-5556667', status:'Active' }
+  ];
+}
+function seedFeedback(){
+  return [
+    { id:'FB-001', doctorId:'DOC-001', patient:'A.R.', rating:5, comment:'Very attentive and explained everything clearly.', date:'2026-08-10' },
+    { id:'FB-002', doctorId:'DOC-002', patient:'H.I.', rating:4, comment:'Short wait time, thorough consultation.', date:'2026-08-12' },
+    { id:'FB-003', doctorId:'DOC-001', patient:'M.K.', rating:5, comment:'Excellent bedside manner.', date:'2026-08-14' }
+  ];
+}
+
+function load(){
+  doctors = JSON.parse(localStorage.getItem(DOCTORS_KEY) || 'null') || seedDoctors();
+  localStorage.setItem(DOCTORS_KEY, JSON.stringify(doctors));
+  staff = JSON.parse(localStorage.getItem(STAFF_KEY) || 'null') || seedStaff();
+  localStorage.setItem(STAFF_KEY, JSON.stringify(staff));
+  feedback = JSON.parse(localStorage.getItem(FEEDBACK_KEY) || 'null') || seedFeedback();
+  localStorage.setItem(FEEDBACK_KEY, JSON.stringify(feedback));
+  const key = todayStr();
+  const store = JSON.parse(localStorage.getItem(ATTEND_KEY) || 'null') || {};
+  if (!store[key]){
+    store[key] = staff.map(s => ({ staffId:s.id, checkIn:null, checkOut:null, status: s.status==='On Leave' ? 'On Leave' : 'Not Checked In' }));
+  }
+  attendance = store[key];
+  localStorage.setItem(ATTEND_KEY, JSON.stringify(store));
+}
+function persistAll(){
+  localStorage.setItem(DOCTORS_KEY, JSON.stringify(doctors));
+  localStorage.setItem(STAFF_KEY, JSON.stringify(staff));
+  localStorage.setItem(FEEDBACK_KEY, JSON.stringify(feedback));
+  const store = JSON.parse(localStorage.getItem(ATTEND_KEY) || '{}');
+  store[todayStr()] = attendance;
+  localStorage.setItem(ATTEND_KEY, JSON.stringify(store));
+}
+
+function avgRating(docId){
+  const fb = feedback.filter(f => f.doctorId === docId);
+  if (!fb.length) return null;
+  return (fb.reduce((a,b)=>a+b.rating,0) / fb.length);
+}
+
+function renderStats(){
+  document.getElementById('statDoctors').textContent = doctors.length;
+  document.getElementById('statStaff').textContent = staff.length;
+  document.getElementById('statPresent').textContent = attendance.filter(a=>a.checkIn && !a.checkOut).length + attendance.filter(a=>a.checkIn && a.checkOut).length;
+  const all = feedback.length ? (feedback.reduce((a,b)=>a+b.rating,0)/feedback.length).toFixed(1) : '—';
+  document.getElementById('statRating').textContent = all === '—' ? '—' : all + ' ★';
+}
+
+function starsHtml(rating){
+  let out = '';
+  for (let i=1;i<=5;i++){ out += `<i data-lucide="star" class="w-3.5 h-3.5 star ${i<=Math.round(rating)?'filled':''}" ${i<=Math.round(rating)?'fill=\"currentColor\"':''}></i>`; }
+  return out;
+}
+
+function renderDoctors(){
+  const grid = document.getElementById('doctorGrid');
+  grid.innerHTML = doctors.map(d => {
+    const rating = avgRating(d.id);
+    const days = d.days.map(n=>DAY_NAMES[n]).join(' · ');
+    return `
+    <div class="bg-white rounded-2xl border p-5 card-hover" style="border-color:var(--line)">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="avatar" style="background:${colorFor(d.id)}">${initials(d.name)}</div>
+          <div>
+            <p class="font-semibold text-sm">${escapeHtml(d.name)}</p>
+            <p class="text-xs text-slate-500">${escapeHtml(d.dept)}</p>
+          </div>
+        </div>
+        <button class="editDocBtn btn-ghost p-1.5 rounded-full" data-id="${d.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+      </div>
+      <div class="flex items-center gap-1 mb-2">${starsHtml(rating||0)}<span class="text-xs text-slate-500 ml-1">${rating? rating.toFixed(1):'No ratings yet'}</span></div>
+      <div class="text-xs text-slate-500 space-y-1.5 mt-3 pt-3 border-t" style="border-color:var(--line)">
+        <p class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>${days}</p>
+        <p class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i>${d.start} – ${d.end}</p>
+        <p class="flex items-center gap-1.5"><i data-lucide="phone" class="w-3.5 h-3.5"></i>${escapeHtml(d.phone||'—')}</p>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+  grid.querySelectorAll('.editDocBtn').forEach(b => b.addEventListener('click', () => openDoctorModal(b.dataset.id)));
+}
+
+function renderStaff(){
+  const tb = document.getElementById('staffTbody');
+  tb.innerHTML = staff.map(s => `
+    <tr class="border-b last:border-0" style="border-color:var(--line)">
+      <td class="px-5 py-3 flex items-center gap-2.5">
+        <div class="avatar" style="width:34px;height:34px;font-size:12px;background:${colorFor(s.id)}">${initials(s.name)}</div>
+        <span class="font-medium">${escapeHtml(s.name)}</span>
+      </td>
+      <td class="px-5 py-3">${escapeHtml(s.role)}</td>
+      <td class="px-5 py-3 text-slate-500">${escapeHtml(s.dept||'—')}</td>
+      <td class="px-5 py-3 text-slate-500 font-mono text-xs">${escapeHtml(s.phone||'—')}</td>
+      <td class="px-5 py-3">
+        <span class="chip rounded-full px-2.5 py-1 inline-flex items-center gap-1.5">
+          <span class="status-dot" style="background:${s.status==='Active'?'#2BB3A3':'#D97706'}"></span>${s.status}
+        </span>
+      </td>
+      <td class="px-5 py-3 text-right">
+        <button class="removeStaffBtn text-xs text-red-600 hover:underline" data-id="${s.id}">Remove</button>
+      </td>
+    </tr>`).join('');
+  tb.querySelectorAll('.removeStaffBtn').forEach(b => b.addEventListener('click', () => {
+    staff = staff.filter(s => s.id !== b.dataset.id);
+    persistAll(); renderAll(); toast('Staff member removed');
+  }));
+}
+
+function renderAttendance(){
+  document.getElementById('attendanceDate').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  const tb = document.getElementById('attendanceTbody');
+  tb.innerHTML = attendance.map(a => {
+    const s = staff.find(x => x.id === a.staffId);
+    if (!s) return '';
+    let statusColor = '#94A3B8';
+    if (a.status === 'Present' || a.status === 'Checked Out') statusColor = '#2BB3A3';
+    if (a.status === 'On Leave') statusColor = '#D97706';
+    if (a.status === 'Not Checked In') statusColor = '#DC2626';
+    return `
+    <tr class="border-b last:border-0" style="border-color:var(--line)">
+      <td class="px-5 py-3 font-medium">${escapeHtml(s.name)}</td>
+      <td class="px-5 py-3 text-slate-500">${escapeHtml(s.role)}</td>
+      <td class="px-5 py-3 font-mono text-xs">${a.checkIn || '—'}</td>
+      <td class="px-5 py-3 font-mono text-xs">${a.checkOut || '—'}</td>
+      <td class="px-5 py-3"><span class="chip rounded-full px-2.5 py-1 inline-flex items-center gap-1.5"><span class="status-dot" style="background:${statusColor}"></span>${a.status}</span></td>
+      <td class="px-5 py-3">
+        ${a.status==='On Leave' ? '' : !a.checkIn
+          ? `<button class="checkInBtn btn-teal text-xs font-semibold px-3 py-1.5 rounded-full" data-id="${a.staffId}">Check In</button>`
+          : !a.checkOut
+          ? `<button class="checkOutBtn btn-outline text-xs font-semibold px-3 py-1.5 rounded-full" data-id="${a.staffId}">Check Out</button>`
+          : `<span class="text-xs text-slate-400">Shift complete</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+  tb.querySelectorAll('.checkInBtn').forEach(b => b.addEventListener('click', () => {
+    const a = attendance.find(x => x.staffId === b.dataset.id);
+    a.checkIn = nowHM(); a.status = 'Present';
+    persistAll(); renderAll(); toast('Checked in');
+  }));
+  tb.querySelectorAll('.checkOutBtn').forEach(b => b.addEventListener('click', () => {
+    const a = attendance.find(x => x.staffId === b.dataset.id);
+    a.checkOut = nowHM(); a.status = 'Checked Out';
+    persistAll(); renderAll(); toast('Checked out');
+  }));
+}
+
+function renderFeedback(){
+  const list = document.getElementById('feedbackList');
+  const sorted = [...feedback].sort((a,b) => b.date.localeCompare(a.date));
+  list.innerHTML = sorted.map(f => {
+    const d = doctors.find(x => x.id === f.doctorId);
+    return `
+    <div class="bg-white rounded-2xl border p-5" style="border-color:var(--line)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="font-semibold text-sm">${d?escapeHtml(d.name):'Unknown Doctor'}</p>
+        <span class="text-xs text-slate-400">${f.date}</span>
+      </div>
+      <div class="flex items-center gap-1 mb-2">${starsHtml(f.rating)}</div>
+      <p class="text-sm text-slate-600">${escapeHtml(f.comment)}</p>
+      <p class="text-xs text-slate-400 mt-2">— Patient ${escapeHtml(f.patient)}</p>
+    </div>`;
+  }).join('') || '<p class="text-sm text-slate-400">No feedback submitted yet.</p>';
+  lucide.createIcons();
+
+  const sel = document.getElementById('fbDoctor');
+  sel.innerHTML = doctors.map(d => `<option value="${d.id}">${escapeHtml(d.name)} — ${escapeHtml(d.dept)}</option>`).join('');
+}
+
+function renderAll(){ renderStats(); renderDoctors(); renderStaff(); renderAttendance(); renderFeedback(); }
+
+/* ---- tabs ---- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['doctors','staff','attendance','feedback'].forEach(t => {
+      document.getElementById('tab-'+t).classList.toggle('hidden', t !== btn.dataset.tab);
+    });
+  });
+});
+
+/* ---- star picker ---- */
+const fbStars = document.getElementById('fbStars');
+function renderStarPicker(rating){
+  fbStars.innerHTML = '';
+  for (let i=1;i<=5;i++){
+    const s = document.createElement('button');
+    s.type = 'button';
+    s.innerHTML = `<i data-lucide="star" class="w-6 h-6 star ${i<=rating?'filled':''}" ${i<=rating?'fill="currentColor"':''}></i>`;
+    s.addEventListener('click', () => { document.getElementById('fbRating').value = i; renderStarPicker(i); });
+    fbStars.appendChild(s);
+  }
+  lucide.createIcons();
+}
+renderStarPicker(5);
+
+document.getElementById('feedbackForm').addEventListener('submit', e => {
+  e.preventDefault();
+  feedback.push({
+    id: 'FB-' + String(feedback.length+1).padStart(3,'0'),
+    doctorId: document.getElementById('fbDoctor').value,
+    patient: document.getElementById('fbPatient').value,
+    rating: Number(document.getElementById('fbRating').value),
+    comment: document.getElementById('fbComment').value,
+    date: todayStr()
+  });
+  persistAll(); renderAll(); e.target.reset(); renderStarPicker(5);
+  toast('Thank you — feedback submitted');
+});
+
+/* ---- doctor modal ---- */
+const doctorModal = document.getElementById('doctorModal');
+const docDaysPicker = document.getElementById('docDaysPicker');
+let selectedDays = [1,2,3,4,5];
+function renderDaysPicker(){
+  docDaysPicker.innerHTML = DAY_NAMES.map((d,i) => `
+    <button type="button" data-day="${i}" class="dayChip w-9 h-9 rounded-full text-xs font-semibold border ${selectedDays.includes(i)?'text-white':'text-slate-500'}"
+      style="border-color:var(--line); background:${selectedDays.includes(i)?'var(--primary)':'white'}">${d[0]}</button>
+  `).join('');
+  docDaysPicker.querySelectorAll('.dayChip').forEach(b => b.addEventListener('click', () => {
+    const day = Number(b.dataset.day);
+    selectedDays = selectedDays.includes(day) ? selectedDays.filter(x=>x!==day) : [...selectedDays, day];
+    renderDaysPicker();
+  }));
+}
+function openDoctorModal(id){
+  document.getElementById('doctorForm').reset();
+  if (id){
+    const d = doctors.find(x=>x.id===id);
+    document.getElementById('doctorModalTitle').textContent = 'Edit Doctor';
+    document.getElementById('docId').value = d.id;
+    document.getElementById('docName').value = d.name;
+    document.getElementById('docDept').value = d.dept;
+    document.getElementById('docStart').value = d.start;
+    document.getElementById('docEnd').value = d.end;
+    document.getElementById('docPhone').value = d.phone || '';
+    selectedDays = [...d.days];
+  } else {
+    document.getElementById('doctorModalTitle').textContent = 'Add Doctor';
+    document.getElementById('docId').value = '';
+    selectedDays = [1,2,3,4,5];
+  }
+  renderDaysPicker();
+  doctorModal.classList.remove('hidden'); doctorModal.classList.add('flex');
+  lucide.createIcons();
+}
+document.getElementById('openAddDoctorBtn').addEventListener('click', () => openDoctorModal(null));
+document.querySelectorAll('.doctorModalClose').forEach(b => b.addEventListener('click', () => { doctorModal.classList.add('hidden'); doctorModal.classList.remove('flex'); }));
+document.getElementById('doctorForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('docId').value;
+  const payload = {
+    id: id || 'DOC-' + String(doctors.length+1).padStart(3,'0'),
+    name: document.getElementById('docName').value,
+    dept: document.getElementById('docDept').value,
+    days: [...selectedDays].sort(),
+    start: document.getElementById('docStart').value,
+    end: document.getElementById('docEnd').value,
+    slotMins: 30,
+    leaves: id ? (doctors.find(d=>d.id===id).leaves||[]) : [],
+    phone: document.getElementById('docPhone').value
+  };
+  if (id){ doctors = doctors.map(d => d.id===id ? payload : d); }
+  else { doctors.push(payload); }
+  persistAll(); renderAll();
+  doctorModal.classList.add('hidden'); doctorModal.classList.remove('flex');
+  toast(id ? 'Doctor profile updated' : 'Doctor added');
+});
+
+/* ---- staff modal ---- */
+const staffModal = document.getElementById('staffModal');
+document.getElementById('openAddStaffBtn').addEventListener('click', () => {
+  document.getElementById('staffForm').reset();
+  staffModal.classList.remove('hidden'); staffModal.classList.add('flex');
+});
+document.querySelectorAll('.staffModalClose').forEach(b => b.addEventListener('click', () => { staffModal.classList.add('hidden'); staffModal.classList.remove('flex'); }));
+document.getElementById('staffForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = 'STF-' + String(staff.length+1).padStart(3,'0');
+  staff.push({
+    id, name: document.getElementById('stfName').value, role: document.getElementById('stfRole').value,
+    dept: document.getElementById('stfDept').value, phone: document.getElementById('stfPhone').value, status:'Active'
+  });
+  attendance.push({ staffId:id, checkIn:null, checkOut:null, status:'Not Checked In' });
+  persistAll(); renderAll();
+  staffModal.classList.add('hidden'); staffModal.classList.remove('flex');
+  toast('Staff member added');
+});
+
+load();
+renderAll();
+</script>
+</body>
+</html>
